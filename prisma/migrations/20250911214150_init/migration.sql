@@ -20,6 +20,8 @@ CREATE TABLE `Cliente` (
     `nombres` VARCHAR(191) NOT NULL,
     `apellidos` VARCHAR(191) NOT NULL,
     `edad` INTEGER NULL,
+    `direccion` VARCHAR(191) NOT NULL,
+    `telefono` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

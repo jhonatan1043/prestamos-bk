@@ -24,6 +24,8 @@ model Cliente {
   nombres            String
   apellidos          String
   edad               Int?
+  direccion          String
+  telefono           Int
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   prestamos          Prestamo[]

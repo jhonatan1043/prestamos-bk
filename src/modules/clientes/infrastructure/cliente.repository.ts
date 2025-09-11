@@ -15,6 +15,8 @@ export class PrismaClienteRepository implements IClienteRepository {
         nombres: cliente.nombres,
         apellidos: cliente.apellidos,
         edad: cliente.edad,
+        direccion: cliente.direccion,
+        telefono: cliente.telefono,
       },
     });
     return new Cliente(
@@ -23,6 +25,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       created.identificacion,
       created.nombres,
       created.apellidos,
+      created.direccion,
+      created.telefono,
       created.edad ?? undefined,
     );
   }
@@ -37,6 +41,8 @@ export class PrismaClienteRepository implements IClienteRepository {
           c.identificacion,
           c.nombres,
           c.apellidos,
+          c.direccion,
+          c.telefono,
           c.edad ?? undefined,
         ),
     );
@@ -51,6 +57,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       c.identificacion,
       c.nombres,
       c.apellidos,
+      c.direccion,
+      c.telefono,
       c.edad ?? undefined,
     );
   }
@@ -64,6 +72,9 @@ export class PrismaClienteRepository implements IClienteRepository {
         nombres: cliente.nombres,
         apellidos: cliente.apellidos,
         edad: cliente.edad,
+        direccion: cliente.direccion,
+        telefono: cliente.telefono,
+        
       },
     });
     return new Cliente(
@@ -72,6 +83,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       updated.identificacion,
       updated.nombres,
       updated.apellidos,
+      cliente.direccion,
+      cliente.telefono,
       updated.edad ?? undefined,
     );
   }

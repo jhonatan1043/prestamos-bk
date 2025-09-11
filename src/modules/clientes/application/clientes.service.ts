@@ -18,7 +18,9 @@ export class ClientesService {
       dto.identificacion,
       dto.nombres,
       dto.apellidos,
-      dto.edad,
+      dto.direccion,
+      dto.telefono,
+      dto.edad
     );
     return this.clienteRepository.create(cliente);
   }
@@ -40,6 +42,8 @@ export class ClientesService {
       dto.identificacion ?? '',
       dto.nombres ?? '',
       dto.apellidos ?? '',
+      dto.direccion ?? '',
+      dto.telefono ?? 0,
       dto.edad,
     );
     return this.clienteRepository.update(cliente);

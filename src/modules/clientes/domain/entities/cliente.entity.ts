@@ -5,6 +5,8 @@ export class Cliente {
     public identificacion: string,
     public nombres: string,
     public apellidos: string,
+    public direccion: string,
+    public telefono: number,
     public edad?: number,
   ) {}
 
