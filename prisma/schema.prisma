@@ -15,6 +15,7 @@ model User {
   role      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  prestamos Prestamo[]
 }
 
 model Cliente {
@@ -40,7 +41,9 @@ model Prestamo {
   fechaInicio DateTime
   estado      String
   clienteId   Int
+  usuarioId   Int
   cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  usuario     User     @relation(fields: [usuarioId], references: [id])
   pagos       Pago[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

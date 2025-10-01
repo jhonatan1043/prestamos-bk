@@ -29,4 +29,8 @@ export class CreatePrestamoDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     clienteId: number;
+
+    @ApiProperty({ example: 1, description: 'ID del usuario que realiza el préstamo' })
+    @IsInt()
+    usuarioId: number;
 }

@@ -8,7 +8,7 @@ export class PrismaPrestamoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreatePrestamoDto) {
-    return this.prisma.prestamo.create({ data });
+  return this.prisma.prestamo.create({ data }); // usuarioId ya estará incluido en data
   }
 
   async findAll() {

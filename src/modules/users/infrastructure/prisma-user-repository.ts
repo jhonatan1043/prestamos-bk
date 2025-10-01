@@ -12,11 +12,28 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany();
+    const users = await this.prisma.user.findMany();
+    return users.map(u => {
+      const user = new User();
+      user.id = u.id;
+      user.email = u.email;
+      user.password = u.password;
+  user.role = u.role;
+      user.nombre = u.nombre;
+      return user;
+    });
   }
 
   async findById(id: number): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    if (!u) return null;
+    const user = new User();
+    user.id = u.id;
+    user.email = u.email;
+    user.password = u.password;
+  user.role = u.role;
+    user.nombre = u.nombre;
+    return user;
   }
 
   async findByEmail(email: string): Promise<User | null> {

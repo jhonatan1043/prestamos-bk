@@ -12,6 +12,13 @@ export class ClientesService {
   ) {}
 
   async create(dto: CreateClienteDto) {
+    // Validar si ya existe un cliente con la misma identificación
+    const clientes = await this.clienteRepository.findAll();
+    const existe = clientes.find(c => c.identificacion === dto.identificacion);
+    if (existe) {
+      // Lanzar excepción si ya existe
+      throw new (await import('@nestjs/common')).ConflictException('El cliente ya está registrado');
+    }
     const cliente = new Cliente(
       null,
       dto.tipoIdentificacion,
@@ -36,6 +43,14 @@ export class ClientesService {
   }
 
   async update(id: number, dto: UpdateClienteDto) {
+    // Validar que no se duplique la identificación con otro cliente
+    if (dto.identificacion) {
+      const clientes = await this.clienteRepository.findAll();
+      const existe = clientes.find(c => c.identificacion === dto.identificacion && c.id !== id);
+      if (existe) {
+        throw new (await import('@nestjs/common')).ConflictException('Ya existe otro cliente con esa identificación');
+      }
+    }
     const cliente = new Cliente(
       id,
       dto.tipoIdentificacion ?? '',
@@ -50,6 +65,10 @@ export class ClientesService {
   }
 
   async remove(id: number) {
+    const cliente = await this.clienteRepository.findById(id);
+    if (!cliente) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
     return this.clienteRepository.remove(id);
   }
 }
