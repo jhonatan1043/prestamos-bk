@@ -10,13 +10,13 @@ export class PrismaClienteRepository implements IClienteRepository {
   async create(cliente: Cliente): Promise<Cliente> {
     const created = await this.prisma.cliente.create({
       data: {
-        tipoIdentificacion: cliente.tipoIdentificacion,
-        identificacion: cliente.identificacion,
-        nombres: cliente.nombres,
-        apellidos: cliente.apellidos,
-        edad: cliente.edad,
-        direccion: cliente.direccion,
-        telefono: cliente.telefono,
+      tipoIdentificacion: cliente.tipoIdentificacion,
+      identificacion: cliente.identificacion,
+      nombres: cliente.nombres,
+      apellidos: cliente.apellidos,
+      edad: cliente.edad,
+      direccion: cliente.direccion,
+      telefono: cliente.telefono,
       },
     });
     return new Cliente(

@@ -31,8 +31,8 @@ export class CreateClienteDto {
     description: 'Telefono del cliente',
     required: true,
   })
-  @IsInt()
-  telefono: number;
+  @IsString()
+  telefono: string;
 
   @ApiProperty({
     description: 'Edad del cliente',

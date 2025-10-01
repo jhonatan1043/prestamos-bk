@@ -20,7 +20,7 @@ CREATE TABLE "public"."Cliente" (
     "apellidos" TEXT NOT NULL,
     "edad" INTEGER,
     "direccion" TEXT NOT NULL,
-    "telefono" INTEGER NOT NULL,
+    "telefono" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
