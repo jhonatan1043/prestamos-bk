@@ -43,7 +43,7 @@ export class ClientesService {
       dto.nombres ?? '',
       dto.apellidos ?? '',
       dto.direccion ?? '',
-      dto.telefono ?? 0,
+      dto.telefono ?? '',
       dto.edad,
     );
     return this.clienteRepository.update(cliente);
