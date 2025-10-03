@@ -8,7 +8,9 @@ export class PrismaPrestamoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreatePrestamoDto) {
-    // Convertir usuarioId y clienteId a número si vienen como string
+    // DEBUG: log para ver el tipo y valor recibido
+    console.log('DEBUG usuarioId:', data.usuarioId, typeof data.usuarioId);
+    console.log('DEBUG clienteId:', data.clienteId, typeof data.clienteId);
     const usuarioId = typeof data.usuarioId === 'string' ? parseInt(data.usuarioId, 10) : data.usuarioId;
     const clienteId = typeof data.clienteId === 'string' ? parseInt(data.clienteId, 10) : data.clienteId;
     if (isNaN(usuarioId) || isNaN(clienteId)) {
