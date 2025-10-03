@@ -13,16 +13,13 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
 export class PrestamosController {
   constructor(private readonly prestamosService: PrestamosService) {}
-
   @Post()
   @ApiOperation({ summary: 'Crear préstamo' })
   @ApiResponse({ status: 201, type: Prestamo })
   @ApiBody({ type: CreatePrestamoDto })
-  create(@Body() data: CreatePrestamoDto, @Req() req) {
-    // Obtener el usuario autenticado desde el JWT
-    const usuarioId = req.user?.sub;
+  create(@Body() data: CreatePrestamoDto) {
     // El DTO ya valida los datos
-    return this.prestamosService.create({ ...data, usuarioId });
+    return this.prestamosService.create({ ...data});
   }
 
   @Get()
