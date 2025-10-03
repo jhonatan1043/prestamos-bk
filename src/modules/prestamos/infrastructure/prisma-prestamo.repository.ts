@@ -8,7 +8,22 @@ export class PrismaPrestamoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreatePrestamoDto) {
-  return this.prisma.prestamo.create({ data }); // usuarioId ya estará incluido en data
+    // Validar que usuarioId y clienteId existan y sean números
+    if (typeof data.usuarioId !== 'number' || typeof data.clienteId !== 'number') {
+      throw new Error('usuarioId y clienteId deben ser números válidos');
+    }
+    // Solo enviar los campos primitivos requeridos por Prisma
+    const payload = {
+      codigo: data.codigo,
+      monto: data.monto,
+      tasa: data.tasa,
+      plazoDias: data.plazoDias,
+      fechaInicio: data.fechaInicio,
+      estado: data.estado,
+      clienteId: data.clienteId,
+      usuarioId: data.usuarioId,
+    };
+    return this.prisma.prestamo.create({ data: payload });
   }
 
   async findAll() {
