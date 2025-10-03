@@ -8,8 +8,10 @@ export class PrismaPrestamoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreatePrestamoDto) {
-    // Validar que usuarioId y clienteId existan y sean números
-    if (typeof data.usuarioId !== 'number' || typeof data.clienteId !== 'number') {
+    // Convertir usuarioId y clienteId a número si vienen como string
+    const usuarioId = typeof data.usuarioId === 'string' ? parseInt(data.usuarioId, 10) : data.usuarioId;
+    const clienteId = typeof data.clienteId === 'string' ? parseInt(data.clienteId, 10) : data.clienteId;
+    if (isNaN(usuarioId) || isNaN(clienteId)) {
       throw new Error('usuarioId y clienteId deben ser números válidos');
     }
     // Solo enviar los campos primitivos requeridos por Prisma
@@ -20,8 +22,8 @@ export class PrismaPrestamoRepository {
       plazoDias: data.plazoDias,
       fechaInicio: data.fechaInicio,
       estado: data.estado,
-      clienteId: data.clienteId,
-      usuarioId: data.usuarioId,
+      clienteId,
+      usuarioId,
     };
     return this.prisma.prestamo.create({ data: payload });
   }
