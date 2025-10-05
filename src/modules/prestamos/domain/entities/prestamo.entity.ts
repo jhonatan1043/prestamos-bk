@@ -19,9 +19,6 @@ export class Prestamo {
   fechaInicio: Date;
 
   @ApiProperty()
-  estado: string;
-
-  @ApiProperty()
   clienteId: number;
 
   @ApiProperty()
@@ -32,4 +29,7 @@ export class Prestamo {
 
   @ApiProperty({ required: false })
   updatedAt?: Date;
+
+  @ApiProperty({ enum: ['ACTIVO', 'ELIMINADO'] })
+  estado: string; // 'ACTIVO' | 'ELIMINADO'
 }

@@ -15,5 +15,8 @@ export class User {
 
   @ApiProperty()
   role: string;
+  
+  @ApiProperty()
+  estado: string; // 'ACTIVO' | 'ELIMINADO'
 }
 

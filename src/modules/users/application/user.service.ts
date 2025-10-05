@@ -18,8 +18,10 @@ export class UserService {
     }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     return this.repo.create({
-        ...dto, password: hashedPassword,
-        role: dto.role
+      ...dto,
+      password: hashedPassword,
+      role: dto.role,
+      estado: 'ACTIVO'
     });
   }
 
