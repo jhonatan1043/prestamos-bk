@@ -49,6 +49,7 @@ model Prestamo {
   monto       Decimal  @db.Decimal(12,2)
   tasa        Float
   plazoDias   Int
+  tipoPlazo   TipoPlazo @default(DIA)
   fechaInicio DateTime
   estado      String   @default("ACTIVO")
   clienteId   Int
@@ -60,6 +61,11 @@ model Prestamo {
   updatedAt   DateTime @updatedAt
 }
 
+enum TipoPlazo {
+  DIA
+  SEMANA
+  MES
+}
 model Pago {
   id         Int      @id @default(autoincrement())
   prestamoId Int

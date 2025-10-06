@@ -15,6 +15,9 @@ export class Prestamo {
   @ApiProperty()
   plazoDias: number;
 
+  @ApiProperty({ enum: ['DIA', 'SEMANA', 'MES'], example: 'DIA', description: 'Tipo de plazo: día, semana o mes' })
+  tipoPlazo: 'DIA' | 'SEMANA' | 'MES';
+
   @ApiProperty()
   fechaInicio: Date;
 

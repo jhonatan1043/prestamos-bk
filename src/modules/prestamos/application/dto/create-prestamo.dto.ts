@@ -14,9 +14,14 @@ export class CreatePrestamoDto {
     @IsNumber()
     tasa: number;
 
+
     @ApiProperty({ example: 30 })
     @IsInt()
     plazoDias: number;
+
+    @ApiProperty({ enum: ['DIA', 'SEMANA', 'MES'], example: 'DIA', description: 'Tipo de plazo: día, semana o mes' })
+    @IsString()
+    tipoPlazo: 'DIA' | 'SEMANA' | 'MES';
 
     @ApiProperty({ example: '2025-09-04T00:00:00.000Z' })
     @IsDateString()

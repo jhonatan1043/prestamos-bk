@@ -22,6 +22,7 @@ export class PrismaPrestamoRepository {
       monto: data.monto,
       tasa: data.tasa,
       plazoDias: data.plazoDias,
+      tipoPlazo: data.tipoPlazo,
       fechaInicio: data.fechaInicio,
       estado: data.estado,
       clienteId,
@@ -42,7 +43,12 @@ export class PrismaPrestamoRepository {
   }
 
   async update(id: number, data: UpdatePrestamoDto) {
-    return this.prisma.prestamo.update({ where: { id }, data });
+    return this.prisma.prestamo.update({
+      where: { id },
+      data: {
+        ...data,
+      },
+    });
   }
 
   async delete(id: number) {
