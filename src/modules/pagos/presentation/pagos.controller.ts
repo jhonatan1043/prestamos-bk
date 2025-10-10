@@ -1,10 +1,10 @@
-// src/modules/pagos/presentation/pagos.controller.ts
 import {
     Controller,
     Get,
     Post,
     Put,
     Delete,
+    Patch,
     Param,
     Body,
     ParseIntPipe,
@@ -13,6 +13,7 @@ import {
 import { PagosService } from '../application/pagos.service';
 import { CreatePagoDto } from '../application/dto/create-pago.dto';
 import { UpdatePagoDto } from '../application/dto/update-pago.dto';
+import { UpdateEstadoPagoDto } from '../application/dto/update-estado-pago.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 
@@ -79,5 +80,15 @@ export class PagosController {
     @ApiOperation({ summary: 'Eliminar un pago' })
     delete(@Param('id', ParseIntPipe) id: number) {
         return this.pagosService.delete(id);
+    }
+
+    @Patch(':id/estado')
+    @ApiOperation({ summary: 'Actualizar el estado de un pago' })
+    @ApiResponse({ status: 200, description: 'Estado actualizado' })
+    actualizarEstado(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateEstadoPagoDto,
+    ) {
+        return this.pagosService.actualizarEstado(id, dto.estadoId);
     }
 }

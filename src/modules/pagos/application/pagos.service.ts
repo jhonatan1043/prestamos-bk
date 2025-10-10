@@ -11,9 +11,23 @@ export class PagosService {
   constructor(
     @Inject('IPagoRepository')
     private readonly pagoRepository: IPagoRepository,
+    @Inject('IEstadoRepository')
+    private readonly estadoRepository: any,
     @Inject(PrismaService)
     private readonly prisma: PrismaService,
   ) {}
+
+  async actualizarEstado(id: number, estadoId: number) {
+    // Validar que el pago exista
+    const pago = await this.pagoRepository.findById(id);
+    if (!pago) throw new NotFoundException('Pago no encontrado');
+    // Validar que el estado exista
+    const estado = await this.estadoRepository.findById(estadoId);
+    if (!estado) throw new NotFoundException('Estado no encontrado');
+    // Actualizar el estado del pago usando la relación Prisma
+    return this.pagoRepository.update(id, { estadoId });
+  }
+  // ...existing code...
 
   /**
    * Registra un pago optimizado para el préstamo del cliente.
@@ -51,8 +65,8 @@ export class PagosService {
         data: { monto: Number(pago.monto) + abono },
       });
       montoRestante -= abono;
-  const { Decimal } = await import('@prisma/client/runtime/library');
-  pagosRegistrados.push({ ...pago, monto: new Decimal(Number(pago.monto) + abono), estado: pago.estado });
+      const { Decimal } = await import('@prisma/client/runtime/library');
+      pagosRegistrados.push({ ...pago, monto: new Decimal(Number(pago.monto) + abono), estadoId: pago.estadoId });
     }
 
     // Si queda saldo, abonar a pagos futuros
@@ -65,19 +79,22 @@ export class PagosService {
         data: { monto: Number(pago.monto) + abono },
       });
       montoRestante -= abono;
-  const { Decimal } = await import('@prisma/client/runtime/library');
-  pagosRegistrados.push({ ...pago, monto: new Decimal(Number(pago.monto) + abono), estado: pago.estado });
+      const { Decimal } = await import('@prisma/client/runtime/library');
+      pagosRegistrados.push({ ...pago, monto: new Decimal(Number(pago.monto) + abono), estadoId: pago.estadoId });
     }
 
     // Si aún queda saldo, registrar como nuevo pago extra
     if (montoRestante > 0) {
       // Convertir montoRestante a Decimal
       const { Decimal } = await import('@prisma/client/runtime/library');
+      // Buscar el estado ACTIVO
+      const estadoActivo = await this.estadoRepository.findAll();
+      const estadoIdActivo = estadoActivo.find(e => e.nombre === 'ACTIVO')?.id;
       const nuevoPago = await this.pagoRepository.create({
         prestamoId: dto.prestamoId,
         fecha: dto.fecha,
         monto: new Decimal(montoRestante),
-        estado: 'ACTIVO',
+        estadoId: estadoIdActivo,
       });
       pagosRegistrados.push(nuevoPago);
       // Auditoría
@@ -100,9 +117,13 @@ export class PagosService {
   }
 
   async findById(id: number): Promise<Pago> {
-    const pago = await this.pagoRepository.findById(id);
-    if (!pago || pago.estado !== 'ACTIVO') throw new NotFoundException('Pago no encontrado');
-    return pago;
+  const pago = await this.pagoRepository.findById(id);
+  // Si el pago no existe o el estado no es ACTIVO
+  if (!pago) throw new NotFoundException('Pago no encontrado');
+  // Si tienes la relación Estado cargada, puedes validar así:
+  // const estado = await this.estadoRepository.findById(pago.estadoId);
+  // if (!estado || estado.nombre !== 'ACTIVO') throw new NotFoundException('Pago no encontrado');
+  return pago;
   }
 
   /**
@@ -127,11 +148,11 @@ export class PagosService {
   async historialPagosCancelados(): Promise<Pago[]> {
     // Buscar pagos de préstamos cancelados
     const prestamosCancelados = await this.prisma.prestamo.findMany({
-      where: { estado: {nombre: 'CANCELADO'} },
+      where: { estado: { nombre: 'CANCELADO' } },
       include: { pagos: true },
     });
-  // Los pagos de préstamos cancelados pueden no tener estado, así que los marcamos como ACTIVO por defecto
-  return prestamosCancelados.flatMap(p => p.pagos.map(pg => ({ ...pg, estado: pg.estado ?? 'ACTIVO' })));
+    // Retornar los pagos tal cual, ya que ahora tienen estadoId
+    return prestamosCancelados.flatMap(p => p.pagos);
   }
 
   /**

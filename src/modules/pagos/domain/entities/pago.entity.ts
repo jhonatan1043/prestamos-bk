@@ -5,5 +5,6 @@ export class Pago {
   prestamoId: number;
   fecha: Date;
   monto: Decimal;
-  estado: string; // 'ACTIVO' | 'ELIMINADO'
+  estadoId: number;
+  estado?: { id: number; nombre: string };
 }
