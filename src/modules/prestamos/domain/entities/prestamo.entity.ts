@@ -1,4 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+
+export class Estado {
+  @ApiProperty()
+  id: number;
+  @ApiProperty()
+  nombre: string;
+}
+
 export class Prestamo {
   @ApiProperty()
   id: number;
@@ -33,6 +41,6 @@ export class Prestamo {
   @ApiProperty({ required: false })
   updatedAt?: Date;
 
-  @ApiProperty({ enum: ['ACTIVO', 'ELIMINADO'] })
-  estado: string; // 'ACTIVO' | 'ELIMINADO'
+  @ApiProperty({ type: () => Estado, required: false })
+  estado?: Estado;
 }

@@ -113,7 +113,7 @@ export class PagosService {
     const fechaLimite = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000);
     // Buscar préstamos activos con pagos atrasados
     const prestamos = await this.prisma.prestamo.findMany({
-      where: { estado: 'ACTIVO' },
+      where: { estado: { nombre: 'ACTIVO' } },
       include: { pagos: true, cliente: true },
     });
     return prestamos.filter(prestamo => {
@@ -127,7 +127,7 @@ export class PagosService {
   async historialPagosCancelados(): Promise<Pago[]> {
     // Buscar pagos de préstamos cancelados
     const prestamosCancelados = await this.prisma.prestamo.findMany({
-      where: { estado: 'CANCELADO' },
+      where: { estado: {nombre: 'CANCELADO'} },
       include: { pagos: true },
     });
   // Los pagos de préstamos cancelados pueden no tener estado, así que los marcamos como ACTIVO por defecto

@@ -22,9 +22,11 @@ export class PrestamosService {
     if (new Date(data.fechaInicio) <= new Date()) {
       throw new (await import('@nestjs/common')).BadRequestException('La fecha de inicio no puede ser en el pasado');
     }
-    // Validar estado
+    // Validar estado usando estadoId
     const estadosValidos = ['ACTIVO', 'CANCELADO', 'FINALIZADO'];
-    if (!estadosValidos.includes(data.estado)) {
+    // Suponiendo que tienes acceso a PrismaService como this.prisma
+    const estado = await this['prisma']?.estado.findUnique?.({ where: { id: data.estadoId } });
+    if (!estado || !estadosValidos.includes(estado.nombre)) {
       throw new (await import('@nestjs/common')).BadRequestException('Estado inválido');
     }
     // Validar código único
@@ -34,7 +36,7 @@ export class PrestamosService {
     }
     // Validar que el cliente no tenga un préstamo activo
     const tienePrestamoActivo = prestamos.some(
-      p => p.clienteId === data.clienteId && p.estado === 'ACTIVO'
+      p => p.clienteId === data.clienteId && p.estado?.nombre === 'ACTIVO'
     );
     if (tienePrestamoActivo) {
       throw new (await import('@nestjs/common')).ConflictException('El cliente ya tiene un préstamo activo');
