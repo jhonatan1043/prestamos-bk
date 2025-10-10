@@ -41,6 +41,6 @@ export class Prestamo {
   @ApiProperty({ required: false })
   updatedAt?: Date;
 
-  @ApiProperty({ type: () => Estado, required: false })
-  estado?: Estado;
+  @ApiProperty({ example: 1, required: false })
+  estadoId?: number;
 }

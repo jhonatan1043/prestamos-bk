@@ -1,12 +1,17 @@
+import { UpdateEstadoPrestamoDto } from './dto/update-estado-prestamo.dto';
+
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import type { IPrestamoRepository } from '../domain/repositories/prestamo.repository';
 import { Prestamo } from '../domain/entities/prestamo.entity';
+import type { IEstadoRepository } from '../../estados/domain/repositories/estado.repository';
 
 @Injectable()
 export class PrestamosService {
   constructor(
     @Inject('IPrestamoRepository')
     private readonly prestamoRepository: IPrestamoRepository,
+    @Inject('IEstadoRepository')
+    private readonly estadoRepository: IEstadoRepository,
   ) {}
 
   async create(data: import('./dto/create-prestamo.dto').CreatePrestamoDto) {
@@ -22,10 +27,9 @@ export class PrestamosService {
     if (new Date(data.fechaInicio) <= new Date()) {
       throw new (await import('@nestjs/common')).BadRequestException('La fecha de inicio no puede ser en el pasado');
     }
-    // Validar estado usando estadoId
+    // Validar estado usando estadoId y el repositorio
     const estadosValidos = ['ACTIVO', 'CANCELADO', 'FINALIZADO'];
-    // Suponiendo que tienes acceso a PrismaService como this.prisma
-    const estado = await this['prisma']?.estado.findUnique?.({ where: { id: data.estadoId } });
+    const estado = await this.estadoRepository.findById(data.estadoId);
     if (!estado || !estadosValidos.includes(estado.nombre)) {
       throw new (await import('@nestjs/common')).BadRequestException('Estado inválido');
     }
@@ -35,9 +39,14 @@ export class PrestamosService {
       throw new (await import('@nestjs/common')).ConflictException('Ya existe un préstamo con ese código');
     }
     // Validar que el cliente no tenga un préstamo activo
-    const tienePrestamoActivo = prestamos.some(
-      p => p.clienteId === data.clienteId && p.estado?.nombre === 'ACTIVO'
-    );
+    const tienePrestamoActivo = await Promise.all(
+      prestamos
+        .filter(p => p.clienteId === data.clienteId && p.estadoId)
+        .map(async p => {
+          const estado = await this.estadoRepository.findById(p.estadoId!);
+          return estado?.nombre === 'ACTIVO';
+        })
+    ).then(results => results.some(Boolean));
     if (tienePrestamoActivo) {
       throw new (await import('@nestjs/common')).ConflictException('El cliente ya tiene un préstamo activo');
     }
@@ -64,5 +73,18 @@ export class PrestamosService {
 
   async delete(id: number) {
     return this.prestamoRepository.delete(id);
+  }
+
+  async actualizarEstado(id: number, dto: UpdateEstadoPrestamoDto) {
+  // Validar que el préstamo exista
+  const prestamo = await this.prestamoRepository.findById(id);
+  if (!prestamo) throw new NotFoundException('Préstamo no encontrado');
+  // Validar que el estado exista usando el repositorio
+  const estado = await this.estadoRepository.findById(dto.estadoId);
+  if (!estado) throw new NotFoundException('Estado no encontrado');
+  // Solo actualiza el campo estadoId
+  // Usar UpdatePrestamoDto para actualizar solo estadoId
+  const updateDto = { estadoId: dto.estadoId };
+  return this.prestamoRepository.update(id, updateDto);
   }
 }
