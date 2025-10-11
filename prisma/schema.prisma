@@ -72,7 +72,8 @@ model Pago {
   prestamoId Int
   fecha      DateTime
   monto      Decimal  @db.Decimal(12,2)
-  estado     String   @default("ACTIVO")
+  estadoId   Int
+  estado     Estado   @relation(fields: [estadoId], references: [id])
   prestamo   Prestamo @relation(fields: [prestamoId], references: [id])
 }
 
@@ -80,4 +81,5 @@ model Estado {
   id        Int      @id @default(autoincrement())
   nombre    String
   prestamos Prestamo[]
+  pagos     Pago[]
 }
