@@ -21,7 +21,7 @@ export class UserService {
       ...dto,
       password: hashedPassword,
       role: dto.role,
-      estado: 'ACTIVO'
+      estadoId: dto.estadoId ?? 1 // 1 = ACTIVO por defecto
     });
   }
 

@@ -24,8 +24,10 @@ export class Cliente {
   @ApiProperty({ required: false })
   edad?: number;
 
-  @ApiProperty({ enum: ['ACTIVO', 'ELIMINADO'] })
-  estado: string;
+  @ApiProperty()
+  estadoId: number;
+  // Relación opcional para incluir el objeto Estado si se desea
+  estado?: any;
 
   constructor(
     id: number | null,
@@ -35,8 +37,9 @@ export class Cliente {
     apellidos: string,
     direccion: string,
     telefono: string,
-    estado: string = 'ACTIVO',
+    estadoId: number,
     edad?: number,
+    estado?: any,
   ) {
     this.id = id;
     this.tipoIdentificacion = tipoIdentificacion;
@@ -45,8 +48,9 @@ export class Cliente {
     this.apellidos = apellidos;
     this.direccion = direccion;
     this.telefono = telefono;
-    this.estado = estado;
+    this.estadoId = estadoId;
     this.edad = edad;
+    this.estado = estado;
   }
 
   get nombreCompleto(): string {
