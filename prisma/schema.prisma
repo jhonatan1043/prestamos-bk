@@ -22,7 +22,8 @@ model User {
   email     String   @unique
   password  String
   role      String
-  estado    String   @default("ACTIVO")
+  estadoId  Int
+  estado    Estado   @relation(fields: [estadoId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   prestamos Prestamo[]
@@ -37,7 +38,8 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
-  estado             String    @default("ACTIVO")
+  estadoId           Int
+  estado             Estado   @relation(fields: [estadoId], references: [id])
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   prestamos          Prestamo[]
@@ -82,4 +84,6 @@ model Estado {
   nombre    String
   prestamos Prestamo[]
   pagos     Pago[]
+  clientes  Cliente[]
+  usuarios  User[]
 }
