@@ -9,4 +9,7 @@ export class PrestamoEnMoraDto {
   totalPagado: number;
   saldoPendiente: number;
   fechaLimite: Date;
+  cuotas: number;
+  tasaAnual: number;
+  cuotaMensualEstimada: number;
 }

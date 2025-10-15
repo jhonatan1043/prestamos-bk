@@ -19,6 +19,33 @@ export class PagosService {
     private readonly prisma: PrismaService,
   ) {}
 
+  private calcularCuotasMes(tipoPlazo: string, plazoDias: number): number {
+    if (tipoPlazo === 'MES') return plazoDias;
+    if (tipoPlazo === 'SEMANA') return plazoDias * 4;
+    return Math.ceil(plazoDias / 30);
+  }
+
+  private calcularCuotaMensual(monto: number, tasaAnual: number, cuotas: number): number {
+    const r = tasaAnual / 12 / 100;
+    const n = cuotas;
+    if (r > 0 && n > 0 && monto > 0) {
+      return (monto * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    }
+    return 0;
+  }
+
+  private calcularFechaLimite(tipoPlazo: string, plazoDias: number, fechaInicio: Date): Date {
+    const fechaLimite = new Date(fechaInicio);
+    if (tipoPlazo === 'DIA') {
+      fechaLimite.setDate(fechaLimite.getDate() + plazoDias);
+    } else if (tipoPlazo === 'SEMANA') {
+      fechaLimite.setDate(fechaLimite.getDate() + plazoDias * 7);
+    } else if (tipoPlazo === 'MES') {
+      fechaLimite.setMonth(fechaLimite.getMonth() + plazoDias);
+    }
+    return fechaLimite;
+  }
+
   async actualizarEstado(id: number, estadoId: number) {
     // Validar que el pago exista
     const pago = await this.pagoRepository.findById(id);
@@ -143,31 +170,24 @@ export class PagosService {
       include: { pagos: true, cliente: true },
     });
 
-  const result: PrestamoEnMoraDto[] = [];
+    const result: PrestamoEnMoraDto[] = [];
+    const hoy = new Date();
     for (const prestamo of prestamos) {
       const montoPrestamo = Number(prestamo.monto);
-      // Filtrar los pagos por el id del préstamo actual
       const pagos = prestamo.pagos.filter(pago => pago.prestamoId === prestamo.id);
       const totalPagado = pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
       const saldoPendiente = montoPrestamo - totalPagado;
-      // Mapear cliente y pagos a sus DTOs
       const clienteDto = prestamo.cliente as CreateClienteDto;
       const pagosDto = pagos.map(p => ({
         prestamoId: p.prestamoId,
         fecha: p.fecha,
         monto: p.monto
       })) as CreatePagoDto[];
-      // Calcular fecha límite según tipoPlazo
-      let fechaLimite = new Date(prestamo.fechaInicio);
-      if (prestamo.tipoPlazo === 'DIA') {
-        fechaLimite.setDate(fechaLimite.getDate() + prestamo.plazoDias);
-      } else if (prestamo.tipoPlazo === 'SEMANA') {
-        fechaLimite.setDate(fechaLimite.getDate() + prestamo.plazoDias * 7);
-      } else if (prestamo.tipoPlazo === 'MES') {
-        fechaLimite.setMonth(fechaLimite.getMonth() + prestamo.plazoDias);
-      }
-      const hoy = new Date();
+      const fechaLimite = this.calcularFechaLimite(prestamo.tipoPlazo, prestamo.plazoDias, prestamo.fechaInicio);
       const vencidoPorPlazo = hoy > fechaLimite;
+      const cuotas = this.calcularCuotasMes(prestamo.tipoPlazo, prestamo.plazoDias);
+      const tasaAnual = prestamo.tasa ?? 24;
+      const cuotaMensualEstimada = this.calcularCuotaMensual(montoPrestamo, tasaAnual, cuotas);
       if (saldoPendiente > 0 && vencidoPorPlazo) {
         result.push({
           id: prestamo.id,
@@ -176,7 +196,10 @@ export class PagosService {
           montoPrestamo,
           totalPagado,
           saldoPendiente,
-          fechaLimite
+          fechaLimite,
+          cuotas,
+          tasaAnual,
+          cuotaMensualEstimada
         });
       }
     }
