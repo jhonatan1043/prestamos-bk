@@ -3,7 +3,7 @@ import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import type { IPagoRepository } from '../domain/repositories/pago.repository';
 import { Pago } from '../domain/entities/pago.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
-import { PrestamoEnMoraDto } from '../presentation/dto/prestamo-en-mora.dto';
+import { PrestamoMoraResumidoDto } from '../presentation/dto/prestamo-mora-resumido.dto';
 import { CreateClienteDto } from '../../clientes/presentation/dto/create-cliente.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -163,47 +163,33 @@ export class PagosService {
    *   - Meses: plazoDias meses reales (usando setMonth)
    * Retorna préstamos activos con saldo pendiente y vencidos por plazo.
    */
-  async prestamosEnMora(): Promise<any[]> {
-    // Buscar todos los préstamos con sus pagos y cliente
+  async prestamosEnMora(): Promise<PrestamoMoraResumidoDto[]> {
     const prestamos = await this.prisma.prestamo.findMany({
       where: { estado: { nombre: 'ACTIVO' } },
       include: { pagos: true, cliente: true },
     });
 
-    const result: PrestamoEnMoraDto[] = [];
     const hoy = new Date();
-    for (const prestamo of prestamos) {
-      const montoPrestamo = Number(prestamo.monto);
-      const pagos = prestamo.pagos.filter(pago => pago.prestamoId === prestamo.id);
-      const totalPagado = pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
-      const saldoPendiente = montoPrestamo - totalPagado;
-      const clienteDto = prestamo.cliente as CreateClienteDto;
-      const pagosDto = pagos.map(p => ({
-        prestamoId: p.prestamoId,
-        fecha: p.fecha,
-        monto: p.monto
-      })) as CreatePagoDto[];
-      const fechaLimite = this.calcularFechaLimite(prestamo.tipoPlazo, prestamo.plazoDias, prestamo.fechaInicio);
-      const vencidoPorPlazo = hoy > fechaLimite;
-      const cuotas = this.calcularCuotasMes(prestamo.tipoPlazo, prestamo.plazoDias);
-      const tasaAnual = prestamo.tasa ?? 24;
-      const cuotaMensualEstimada = this.calcularCuotaMensual(montoPrestamo, tasaAnual, cuotas);
-      if (saldoPendiente > 0 && vencidoPorPlazo) {
-        result.push({
-          id: prestamo.id,
-          cliente: clienteDto,
-          pagos: pagosDto,
-          montoPrestamo,
-          totalPagado,
-          saldoPendiente,
-          fechaLimite,
-          cuotas,
-          tasaAnual,
-          cuotaMensualEstimada
-        });
-      }
-    }
-    return result;
+    return prestamos
+      .map(prestamo => {
+        const montoPrestamo = Number(prestamo.monto);
+        const totalPagado = prestamo.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
+        const saldoPendiente = montoPrestamo - totalPagado;
+        const fechaLimite = this.calcularFechaLimite(prestamo.tipoPlazo, prestamo.plazoDias, prestamo.fechaInicio);
+        const vencidoPorPlazo = hoy > fechaLimite;
+        if (saldoPendiente > 0 && vencidoPorPlazo) {
+          return {
+            id: prestamo.id,
+            nombreCliente: `${prestamo.cliente.nombres} ${prestamo.cliente.apellidos}`,
+            montoPrestamo,
+            totalPagado,
+            saldoPendiente,
+            fechaLimite,
+          };
+        }
+        return null;
+      })
+      .filter(item => item !== null);
   }
 
   /**

@@ -11,6 +11,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { PagosService } from '../application/pagos.service';
+import { PrestamoMoraResumidoDto } from './dto/prestamo-mora-resumido.dto';
 import { CreatePagoDto } from '../application/dto/create-pago.dto';
 import { UpdatePagoDto } from '../application/dto/update-pago.dto';
 import { UpdateEstadoPagoDto } from '../application/dto/update-estado-pago.dto';
@@ -33,7 +34,7 @@ export class PagosController {
 
     @Get('mora')
     @ApiOperation({ summary: 'Obtener préstamos en mora por más de 30 días' })
-    @ApiResponse({ status: 200, description: 'Listado de préstamos en mora', type: [CreatePagoDto] })
+    @ApiResponse({ status: 200, description: 'Listado de préstamos en mora resumido', type: [PrestamoMoraResumidoDto] })
     findPrestamosEnMora() {
         return this.pagosService.prestamosEnMora();
     }
