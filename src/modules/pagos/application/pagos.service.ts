@@ -3,6 +3,8 @@ import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import type { IPagoRepository } from '../domain/repositories/pago.repository';
 import { Pago } from '../domain/entities/pago.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
+import { PrestamoEnMoraDto } from '../presentation/dto/prestamo-en-mora.dto';
+import { CreateClienteDto } from '../../clientes/presentation/dto/create-cliente.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 
@@ -127,19 +129,58 @@ export class PagosService {
   }
 
   /**
-   * Obtiene préstamos en mora por más de 30 días
+   * Obtiene préstamos en mora según la fecha límite calculada por tipo de plazo (días, semanas, meses).
+   * La fecha límite se calcula sumando:
+   *   - Días: plazoDias
+   *   - Semanas: plazoDias * 7
+   *   - Meses: plazoDias meses reales (usando setMonth)
+   * Retorna préstamos activos con saldo pendiente y vencidos por plazo.
    */
   async prestamosEnMora(): Promise<any[]> {
-    const hoy = new Date();
-    const fechaLimite = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000);
-    // Buscar préstamos activos con pagos atrasados
+    // Buscar todos los préstamos con sus pagos y cliente
     const prestamos = await this.prisma.prestamo.findMany({
       where: { estado: { nombre: 'ACTIVO' } },
       include: { pagos: true, cliente: true },
     });
-    return prestamos.filter(prestamo => {
-      return prestamo.pagos.some(pago => new Date(pago.fecha) < fechaLimite && Number(pago.monto) < (Number(prestamo.monto) / prestamo.plazoDias));
-    });
+
+  const result: PrestamoEnMoraDto[] = [];
+    for (const prestamo of prestamos) {
+      const montoPrestamo = Number(prestamo.monto);
+      // Filtrar los pagos por el id del préstamo actual
+      const pagos = prestamo.pagos.filter(pago => pago.prestamoId === prestamo.id);
+      const totalPagado = pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
+      const saldoPendiente = montoPrestamo - totalPagado;
+      // Mapear cliente y pagos a sus DTOs
+      const clienteDto = prestamo.cliente as CreateClienteDto;
+      const pagosDto = pagos.map(p => ({
+        prestamoId: p.prestamoId,
+        fecha: p.fecha,
+        monto: p.monto
+      })) as CreatePagoDto[];
+      // Calcular fecha límite según tipoPlazo
+      let fechaLimite = new Date(prestamo.fechaInicio);
+      if (prestamo.tipoPlazo === 'DIA') {
+        fechaLimite.setDate(fechaLimite.getDate() + prestamo.plazoDias);
+      } else if (prestamo.tipoPlazo === 'SEMANA') {
+        fechaLimite.setDate(fechaLimite.getDate() + prestamo.plazoDias * 7);
+      } else if (prestamo.tipoPlazo === 'MES') {
+        fechaLimite.setMonth(fechaLimite.getMonth() + prestamo.plazoDias);
+      }
+      const hoy = new Date();
+      const vencidoPorPlazo = hoy > fechaLimite;
+      if (saldoPendiente > 0 && vencidoPorPlazo) {
+        result.push({
+          id: prestamo.id,
+          cliente: clienteDto,
+          pagos: pagosDto,
+          montoPrestamo,
+          totalPagado,
+          saldoPendiente,
+          fechaLimite
+        });
+      }
+    }
+    return result;
   }
 
   /**
