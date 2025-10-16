@@ -4,12 +4,14 @@ import type { IPagoRepository } from '../domain/repositories/pago.repository';
 import { Pago } from '../domain/entities/pago.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { PrestamoMoraResumidoDto } from '../presentation/dto/prestamo-mora-resumido.dto';
+import { PagoProyectadoDto } from '../presentation/dto/pago-proyectado.dto';
 import { CreateClienteDto } from '../../clientes/presentation/dto/create-cliente.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 
 @Injectable()
 export class PagosService {
+
   constructor(
     @Inject('IPagoRepository')
     private readonly pagoRepository: IPagoRepository,
@@ -19,20 +21,75 @@ export class PagosService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private calcularCuotasMes(tipoPlazo: string, plazoDias: number): number {
-    if (tipoPlazo === 'MES') return plazoDias;
-    if (tipoPlazo === 'SEMANA') return plazoDias * 4;
-    return Math.ceil(plazoDias / 30);
-  }
-
-  private calcularCuotaMensual(monto: number, tasaAnual: number, cuotas: number): number {
+    private calcularMontoCuota(monto: number, tasaAnual: number, cuotas: number, tipoPlazo: string): number {
+    if (tipoPlazo === 'DIA') {
+      const r = tasaAnual / 365 / 100;
+      const n = cuotas;
+      if (r > 0 && n > 0 && monto > 0) {
+        return (monto * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      }
+      return monto / cuotas;
+    }
+    if (tipoPlazo === 'SEMANA') {
+      const r = tasaAnual / 52 / 100;
+      const n = cuotas;
+      if (r > 0 && n > 0 && monto > 0) {
+        return (monto * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      }
+      return monto / cuotas;
+    }
+    // MES y caso general
     const r = tasaAnual / 12 / 100;
     const n = cuotas;
     if (r > 0 && n > 0 && monto > 0) {
       return (monto * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     }
-    return 0;
+    return monto / cuotas;
   }
+  async pagosProyectados(prestamoId: number): Promise<PagoProyectadoDto[]> {
+    const prestamo = await this.prisma.prestamo.findUnique({
+      where: { id: prestamoId },
+      include: { pagos: true },
+    });
+    if (!prestamo) throw new NotFoundException('Préstamo no encontrado');
+
+  const numeroCuotas = this.calcularNumeroCuotas(prestamo.tipoPlazo, prestamo.plazoDias);
+    const montoCuota = this.calcularMontoCuota(Number(prestamo.monto), prestamo.tasa ?? 24, numeroCuotas, prestamo.tipoPlazo);
+    const fechaInicio = new Date(prestamo.fechaInicio);
+
+    const proyectados: PagoProyectadoDto[] = [];
+    for (let i = 1; i <= numeroCuotas; i++) {
+      let fechaEstimada = new Date(fechaInicio);
+      if (prestamo.tipoPlazo === 'DIA') {
+        fechaEstimada.setDate(fechaInicio.getDate() + (i - 1));
+      } else if (prestamo.tipoPlazo === 'SEMANA') {
+        fechaEstimada.setDate(fechaInicio.getDate() + (i - 1) * 7);
+      } else if (prestamo.tipoPlazo === 'MES') {
+        fechaEstimada.setMonth(fechaInicio.getMonth() + (i - 1));
+      }
+      // Verificar si la cuota ya fue pagada
+      const pagado = prestamo.pagos.some(p => {
+        const pagoFecha = new Date(p.fecha);
+        return Math.abs(pagoFecha.getTime() - fechaEstimada.getTime()) < 2 * 24 * 60 * 60 * 1000 && Number(p.monto) >= montoCuota * 0.9;
+      });
+      proyectados.push({
+        prestamoId: prestamo.id,
+        numeroCuota: i,
+        fechaEstimada,
+        montoEstimado: montoCuota,
+        pagado,
+      });
+    }
+    return proyectados;
+  }
+
+   private calcularNumeroCuotas(tipoPlazo: string, plazoDias: number): number {
+  if (tipoPlazo === 'MES') return plazoDias;
+  if (tipoPlazo === 'SEMANA') return plazoDias;
+  if (tipoPlazo === 'DIA') return plazoDias;
+  return 0;
+ }
+
 
   private calcularFechaLimite(tipoPlazo: string, plazoDias: number, fechaInicio: Date): Date {
     const fechaLimite = new Date(fechaInicio);

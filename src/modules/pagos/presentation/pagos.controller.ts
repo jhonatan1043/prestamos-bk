@@ -1,3 +1,5 @@
+
+
 import {
     Controller,
     Get,
@@ -15,6 +17,7 @@ import { PrestamoMoraResumidoDto } from './dto/prestamo-mora-resumido.dto';
 import { CreatePagoDto } from '../application/dto/create-pago.dto';
 import { UpdatePagoDto } from '../application/dto/update-pago.dto';
 import { UpdateEstadoPagoDto } from '../application/dto/update-estado-pago.dto';
+import { PagoProyectadoDto } from './dto/pago-proyectado.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 
@@ -91,5 +94,11 @@ export class PagosController {
         @Body() dto: UpdateEstadoPagoDto,
     ) {
         return this.pagosService.actualizarEstado(id, dto.estadoId);
+    }
+
+    @Get(':id/pagos-proyectados')
+    @ApiResponse({ status: 200, description: 'Pagos proyectados del préstamo', type: [PagoProyectadoDto] })
+    async getPagosProyectados(@Param('id', ParseIntPipe) id: number): Promise<PagoProyectadoDto[]> {
+        return this.pagosService.pagosProyectados(id);
     }
 }
