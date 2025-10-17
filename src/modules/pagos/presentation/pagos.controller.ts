@@ -1,18 +1,23 @@
-// src/modules/pagos/presentation/pagos.controller.ts
+
+
 import {
     Controller,
     Get,
     Post,
     Put,
     Delete,
+    Patch,
     Param,
     Body,
     ParseIntPipe,
     UseGuards,
 } from '@nestjs/common';
 import { PagosService } from '../application/pagos.service';
+import { PrestamoMoraResumidoDto } from './dto/prestamo-mora-resumido.dto';
 import { CreatePagoDto } from '../application/dto/create-pago.dto';
 import { UpdatePagoDto } from '../application/dto/update-pago.dto';
+import { UpdateEstadoPagoDto } from '../application/dto/update-estado-pago.dto';
+import { PagoProyectadoDto } from './dto/pago-proyectado.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 
@@ -32,7 +37,7 @@ export class PagosController {
 
     @Get('mora')
     @ApiOperation({ summary: 'Obtener préstamos en mora por más de 30 días' })
-    @ApiResponse({ status: 200, description: 'Listado de préstamos en mora', type: [CreatePagoDto] })
+    @ApiResponse({ status: 200, description: 'Listado de préstamos en mora resumido', type: [PrestamoMoraResumidoDto] })
     findPrestamosEnMora() {
         return this.pagosService.prestamosEnMora();
     }
@@ -79,5 +84,21 @@ export class PagosController {
     @ApiOperation({ summary: 'Eliminar un pago' })
     delete(@Param('id', ParseIntPipe) id: number) {
         return this.pagosService.delete(id);
+    }
+
+    @Patch(':id/estado')
+    @ApiOperation({ summary: 'Actualizar el estado de un pago' })
+    @ApiResponse({ status: 200, description: 'Estado actualizado' })
+    actualizarEstado(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateEstadoPagoDto,
+    ) {
+        return this.pagosService.actualizarEstado(id, dto.estadoId);
+    }
+
+    @Get(':id/pagos-proyectados')
+    @ApiResponse({ status: 200, description: 'Pagos proyectados del préstamo', type: [PagoProyectadoDto] })
+    async getPagosProyectados(@Param('id', ParseIntPipe) id: number): Promise<PagoProyectadoDto[]> {
+        return this.pagosService.pagosProyectados(id);
     }
 }

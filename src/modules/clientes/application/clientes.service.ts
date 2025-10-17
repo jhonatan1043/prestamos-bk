@@ -27,7 +27,7 @@ export class ClientesService {
       dto.apellidos,
       dto.direccion,
       dto.telefono,
-      'ACTIVO',
+      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad
     );
     return this.clienteRepository.create(cliente);
@@ -60,7 +60,7 @@ export class ClientesService {
       dto.apellidos ?? '',
       dto.direccion ?? '',
       dto.telefono ?? '',
-      'ACTIVO',
+      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad,
     );
     return this.clienteRepository.update(cliente);

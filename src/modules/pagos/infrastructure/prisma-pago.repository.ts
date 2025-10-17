@@ -11,34 +11,40 @@ export class PrismaPagoRepository implements IPagoRepository {
   async create(data: Omit<Pago, 'id'>): Promise<Pago> {
     const result = await this.prisma.pago.create({
       data: {
-        ...data,
+        prestamoId: data.prestamoId,
         fecha: typeof data.fecha === 'string' ? new Date(data.fecha) : data.fecha,
-        estado: data.estado ?? 'ACTIVO',
-      }
+        monto: data.monto,
+        estadoId: data.estadoId,
+      },
     });
-    return { ...result };
+    return result as Pago;
   }
 
   async findAll(): Promise<Pago[]> {
-    const results = await this.prisma.pago.findMany({ where: { estado: 'ACTIVO' } });
-    return results.map(p => ({ ...p }));
+  const results = await this.prisma.pago.findMany();
+  return results as Pago[];
   }
 
   async findById(id: number): Promise<Pago | null> {
-    const pago = await this.prisma.pago.findUnique({ where: { id } });
-    if (!pago || pago.estado !== 'ACTIVO') return null;
-    return { ...pago };
+  const pago = await this.prisma.pago.findUnique({ where: { id } });
+  if (!pago) return null;
+  return pago as Pago;
   }
 
   async update(id: number, data: Partial<Pago>): Promise<Pago> {
+    const updateData: any = { ...data };
+    if (data.estadoId) {
+      updateData.estadoId = data.estadoId;
+    }
     const result = await this.prisma.pago.update({
       where: { id },
-      data,
+      data: updateData,
     });
-    return { ...result };
+    return result as Pago;
   }
 
   async delete(id: number): Promise<void> {
-    await this.prisma.pago.update({ where: { id }, data: { estado: 'ELIMINADO' } });
+  // Para anular el pago, deberías cambiar el estadoId al id correspondiente a "ELIMINADO" en la tabla Estado
+  // await this.prisma.pago.update({ where: { id }, data: { estado: { connect: { id: idEstadoEliminado } } } });
   }
 }

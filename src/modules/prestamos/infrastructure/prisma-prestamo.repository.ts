@@ -24,7 +24,7 @@ export class PrismaPrestamoRepository {
       plazoDias: data.plazoDias,
       tipoPlazo: data.tipoPlazo,
       fechaInicio: data.fechaInicio,
-      estado: data.estado,
+      estadoId: data.estadoId,
       clienteId,
       usuarioId,
     };
@@ -32,13 +32,13 @@ export class PrismaPrestamoRepository {
   }
 
   async findAll() {
-    return this.prisma.prestamo.findMany({ include: { cliente: true } });
+  return this.prisma.prestamo.findMany({ include: { cliente: true, estado: true } });
   }
 
   async findById(id: number) {
     return this.prisma.prestamo.findUnique({
       where: { id },
-      include: { cliente: true },
+      include: { cliente: true, estado: true },
     });
   }
 

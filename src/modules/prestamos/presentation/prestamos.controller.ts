@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { UpdateEstadoPrestamoDto } from '../application/dto/update-estado-prestamo.dto';
+import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Req, Patch } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
 import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
 import { CreatePrestamoDto } from '../application/dto/create-prestamo.dto';
@@ -12,6 +13,7 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
 @UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
 export class PrestamosController {
+
   constructor(private readonly prestamosService: PrestamosService) {}
   @Post()
   @ApiOperation({ summary: 'Crear préstamo' })
@@ -55,5 +57,17 @@ export class PrestamosController {
   @ApiResponse({ status: 404, description: 'Préstamo no encontrado' })
   delete(@Param('id') id: string) {
     return this.prestamosService.delete(+id);
+  }
+
+  @Patch(':id/estado')
+  @ApiOperation({ summary: 'Actualizar estado del préstamo' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
+  @ApiBody({ type: UpdateEstadoPrestamoDto })
+  @ApiResponse({ status: 200, description: 'Estado actualizado', type: Prestamo })
+  async actualizarEstado(
+    @Param('id') id: string,
+    @Body() dto: UpdateEstadoPrestamoDto
+  ) {
+    return this.prestamosService.actualizarEstado(+id, dto);
   }
 }

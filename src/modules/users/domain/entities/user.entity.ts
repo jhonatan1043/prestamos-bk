@@ -17,6 +17,8 @@ export class User {
   role: string;
   
   @ApiProperty()
-  estado: string; // 'ACTIVO' | 'ELIMINADO'
+  estadoId: number;
+  // Relación opcional para incluir el objeto Estado si se desea
+  estado?: any;
 }
 
