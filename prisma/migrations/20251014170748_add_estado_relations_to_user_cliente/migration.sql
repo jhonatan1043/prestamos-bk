@@ -1,4 +1,5 @@
 -- CreateEnum
+DROP TYPE IF EXISTS "TipoPlazo";
 CREATE TYPE "TipoPlazo" AS ENUM ('DIA', 'SEMANA', 'MES');
 
 -- CreateTable
