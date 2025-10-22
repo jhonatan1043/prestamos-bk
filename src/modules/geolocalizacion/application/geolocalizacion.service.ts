@@ -22,4 +22,10 @@ export class GeolocalizacionService {
     const response = await firstValueFrom(this.httpService.get(url));
     return response.data;
   }
+
+    async reverseGeocode(lat: string, lon: string) {
+      const url = `${this.baseUrl}/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+      const response = await firstValueFrom(this.httpService.get(url));
+      return response.data;
+    }
 }

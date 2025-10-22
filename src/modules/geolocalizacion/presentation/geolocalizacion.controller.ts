@@ -9,4 +9,9 @@ export class GeolocalizacionController {
   async search(@Query('q') query: string) {
     return this.geolocalizacionService.searchAddress(query);
   }
+
+    @Get('reverse')
+    async reverse(@Query('lat') lat: string, @Query('lon') lon: string) {
+      return this.geolocalizacionService.reverseGeocode(lat, lon);
+    }
 }
