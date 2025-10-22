@@ -73,4 +73,11 @@ export class ClientesService {
     }
     return this.clienteRepository.remove(id);
   }
+
+    async buscarPorIdentificacion(identificacion: string) {
+      const clientes = await this.clienteRepository.findAll();
+      const cliente = clientes.find(c => c.identificacion === identificacion && c.estadoId === 1);
+      if (!cliente) throw new NotFoundException('Cliente no encontrado o no está activo');
+      return cliente;
+    }
 }
