@@ -1,31 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Inject } from '@nestjs/common';
+import type { IGeocodingProvider } from '../domain/providers/geocoding-provider.interface';
 
 @Injectable()
 export class GeolocalizacionService {
-
-  private readonly baseUrl: string;
-  private readonly BASE_URL_OPTIONAL = 'https://nominatim.openstreetmap.org';
-
-
   constructor(
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
-  ) {
-    this.baseUrl = this.configService.get<string>('NOMINATIM_BASE_URL', this.BASE_URL_OPTIONAL);
-  }
+    @Inject('IGeocodingProvider')
+    private readonly provider: IGeocodingProvider,
+  ) {}
 
   async searchAddress(query: string) {
-    const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}&format=json`;
-    const response = await firstValueFrom(this.httpService.get(url));
-    return response.data;
+    return this.provider.searchAddress(query);
   }
 
-    async reverseGeocode(lat: string, lon: string) {
-      const url = `${this.baseUrl}/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
-      const response = await firstValueFrom(this.httpService.get(url));
-      return response.data;
-    }
+  async reverseGeocode(lat: string, lon: string) {
+    return this.provider.reverseGeocode(lat, lon);
+  }
 }
+
