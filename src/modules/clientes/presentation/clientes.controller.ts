@@ -9,12 +9,21 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiTags('clientes') // 🔑 Agrupa todos los endpoints bajo "clientes"
 @ApiExtraModels(UpdateClienteDto)
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
-@UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
 @Controller('clientes')
 export class ClientesController {
   constructor(private readonly clientesService: ClientesService) {}
 
+    @Get(':identificacion')
+    @ApiOperation({ summary: 'Buscar cliente por número de identificación' })
+    @ApiParam({ name: 'identificacion', type: String, description: 'Número de identificación del cliente' })
+    @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
+    @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
+    async buscarPorIdentificacion(@Param('identificacion') identificacion: string) {
+      return await this.clientesService.buscarPorIdentificacion(identificacion);
+    }
+
   @Post()
+    @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Crear un nuevo cliente' })
   @ApiResponse({ status: 201, description: 'Cliente creado exitosamente', type: Cliente })
   @ApiBody({ type: CreateClienteDto })

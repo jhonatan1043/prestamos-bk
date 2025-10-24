@@ -54,4 +54,15 @@ export class PrismaPrestamoRepository {
   async delete(id: number) {
     return this.prisma.prestamo.delete({ where: { id } });
   }
+
+  async findByClienteIdentificacion(identificacion: string) {
+    return this.prisma.prestamo.findMany({
+      where: {
+        cliente: {
+          identificacion: identificacion
+        }
+      },
+      include: { cliente: true, estado: true }
+    });
+  }
 }
