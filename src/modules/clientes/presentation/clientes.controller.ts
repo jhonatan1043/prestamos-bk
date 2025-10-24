@@ -32,7 +32,6 @@ export class ClientesController {
   }
 
   @Get()
-    @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Listar todos los clientes' })
   @ApiResponse({ status: 200, description: 'Listado de clientes retornado', type: [Cliente] })
   async findAll() {

@@ -87,4 +87,8 @@ export class PrestamosService {
   const updateDto = { estadoId: dto.estadoId };
   return this.prestamoRepository.update(id, updateDto);
   }
+
+  async findByClienteIdentificacion(identificacion: string) {
+    return this.prestamoRepository.findByClienteIdentificacion(identificacion);
+  }
 }

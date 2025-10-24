@@ -11,10 +11,19 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiTags('prestamos')
 @Controller('prestamos')
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
-@UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
+// @UseGuards(JwtAuthGuard) // 🔒 Solo en métodos específicos
 export class PrestamosController {
+  @Get('cliente/:identificacion')
+  @ApiOperation({ summary: 'Listar préstamos por identificación de cliente' })
+  @ApiParam({ name: 'identificacion', type: String, description: 'Identificación del cliente' })
+  @ApiResponse({ status: 200, description: 'Listado de préstamos', type: [Prestamo] })
+  findByClienteIdentificacion(@Param('identificacion') identificacion: string) {
+    return this.prestamosService.findByClienteIdentificacion(identificacion);
+  }
 
   constructor(private readonly prestamosService: PrestamosService) {}
+
+  @UseGuards(JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: 'Crear préstamo' })
   @ApiResponse({ status: 201, type: Prestamo })
@@ -24,6 +33,8 @@ export class PrestamosController {
     return this.prestamosService.create({ ...data});
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Listar préstamos' })
   @ApiResponse({ status: 200, description: 'Listado de préstamos', type: [Prestamo] })
@@ -31,6 +42,7 @@ export class PrestamosController {
     return this.prestamosService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener préstamo por ID' })
   @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
@@ -40,6 +52,8 @@ export class PrestamosController {
     return this.prestamosService.findById(+id);
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar préstamo' })
   @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
@@ -50,6 +64,8 @@ export class PrestamosController {
     return this.prestamosService.update(+id, data);
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar préstamo' })
   @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
@@ -59,6 +75,8 @@ export class PrestamosController {
     return this.prestamosService.delete(+id);
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/estado')
   @ApiOperation({ summary: 'Actualizar estado del préstamo' })
   @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })

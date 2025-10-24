@@ -7,4 +7,6 @@ export interface IPrestamoRepository {
   findById(id: number): Promise<Prestamo | null>;
   update(id: number, data: UpdatePrestamoDto): Promise<Prestamo>;
   delete(id: number): Promise<void>;
+
+  findByClienteIdentificacion(identificacion: string): Promise<Prestamo[]>;
 }
