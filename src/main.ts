@@ -7,7 +7,7 @@ async function bootstrap() {
 
   // Configuración global de CORS
   app.enableCors({
-    origin: ['http://localhost:4200'], // agrega aquí los dominios permitidos
+    origin: true, // agrega aquí los dominios permitidos
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

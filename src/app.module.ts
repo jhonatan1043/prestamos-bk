@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ClientesModule } from './modules/clientes/clientes.module';
+import { GeolocalizacionModule } from './modules/geolocalizacion/geolocalizacion.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/users/users.module';
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
@@ -9,6 +11,7 @@ import { RutaModule } from './modules/ruta/ruta.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     ClientesModule, 
     AuthModule, 
     UserModule, 
@@ -16,6 +19,7 @@ import { RutaModule } from './modules/ruta/ruta.module';
     PagosModule,
     CobradorModule,
     RutaModule
+    GeolocalizacionModule
   ],
   controllers: [],
   providers: [],

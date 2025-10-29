@@ -5,4 +5,6 @@ export class Pago {
   prestamoId: number;
   fecha: Date;
   monto: Decimal;
+  estadoId: number;
+  estado?: { id: number; nombre: string };
 }

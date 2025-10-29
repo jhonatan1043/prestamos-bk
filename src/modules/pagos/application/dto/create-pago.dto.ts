@@ -3,9 +3,14 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { IsNumber, IsDateString } from 'class-validator';
 
 export class CreatePagoDto {
+
   @ApiProperty({ example: 1 })
   @IsNumber()
   prestamoId: number;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  usuarioId?: number;
 
   @ApiProperty({ example: '2025-09-04T12:00:00Z' })
   @IsDateString()

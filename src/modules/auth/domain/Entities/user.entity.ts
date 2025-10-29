@@ -1,8 +1,18 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class User {
-  constructor(
-    public readonly id: number,
-    public readonly password: string, // guardado con bcrypt
-    public readonly email: string,
-    public readonly roles: string,
-  ) {}
+  @ApiProperty()
+  id: number;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  password: string;
+
+  @ApiProperty()
+  roles: string;
+
+  @ApiProperty()
+  nombre: string;
 }

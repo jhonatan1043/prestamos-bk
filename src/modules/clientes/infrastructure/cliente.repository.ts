@@ -10,13 +10,14 @@ export class PrismaClienteRepository implements IClienteRepository {
   async create(cliente: Cliente): Promise<Cliente> {
     const created = await this.prisma.cliente.create({
       data: {
-        tipoIdentificacion: cliente.tipoIdentificacion,
-        identificacion: cliente.identificacion,
-        nombres: cliente.nombres,
-        apellidos: cliente.apellidos,
-        edad: cliente.edad,
-        direccion: cliente.direccion,
-        telefono: cliente.telefono,
+      tipoIdentificacion: cliente.tipoIdentificacion,
+      identificacion: cliente.identificacion,
+      nombres: cliente.nombres,
+      apellidos: cliente.apellidos,
+  edad: cliente.edad,
+  direccion: cliente.direccion,
+  telefono: cliente.telefono,
+  estado: { connect: { id: cliente.estadoId } },
       },
     });
     return new Cliente(
@@ -27,7 +28,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       created.apellidos,
       created.direccion,
       created.telefono,
-      created.edad ?? undefined,
+  created.estadoId,
+      created.edad === null ? undefined : created.edad
     );
   }
 
@@ -43,7 +45,8 @@ export class PrismaClienteRepository implements IClienteRepository {
           c.apellidos,
           c.direccion,
           c.telefono,
-          c.edad ?? undefined,
+          c.estadoId,
+          c.edad === null ? undefined : c.edad
         ),
     );
   }
@@ -59,7 +62,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       c.apellidos,
       c.direccion,
       c.telefono,
-      c.edad ?? undefined,
+  c.estadoId,
+      c.edad === null ? undefined : c.edad
     );
   }
 
@@ -71,9 +75,10 @@ export class PrismaClienteRepository implements IClienteRepository {
         identificacion: cliente.identificacion,
         nombres: cliente.nombres,
         apellidos: cliente.apellidos,
-        edad: cliente.edad,
-        direccion: cliente.direccion,
-        telefono: cliente.telefono,
+  edad: cliente.edad,
+  direccion: cliente.direccion,
+  telefono: cliente.telefono,
+  estado: { connect: { id: cliente.estadoId } },
         
       },
     });
@@ -83,9 +88,10 @@ export class PrismaClienteRepository implements IClienteRepository {
       updated.identificacion,
       updated.nombres,
       updated.apellidos,
-      cliente.direccion,
-      cliente.telefono,
-      updated.edad ?? undefined,
+      updated.direccion,
+      updated.telefono,
+  updated.estadoId,
+      updated.edad === null ? undefined : updated.edad
     );
   }
 
