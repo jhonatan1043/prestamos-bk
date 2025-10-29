@@ -18,7 +18,7 @@ import { RutaModule } from './modules/ruta/ruta.module';
     PrestamosModule,
     PagosModule,
     CobradorModule,
-    RutaModule
+    RutaModule,
     GeolocalizacionModule
   ],
   controllers: [],
