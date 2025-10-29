@@ -8,8 +8,14 @@ export class PrismaAuthRepository implements AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByUsername(email: string): Promise<User | null> {
-    const u = await this.prisma.user.findUnique({ where: { email } });
-    if (!u) return null;
-    return new User(u.id, u.password, u.email, u.role );
+  const u = await this.prisma.user.findUnique({ where: { email } });
+  if (!u) return null;
+  const user = new User();
+  user.id = u.id;
+  user.email = u.email;
+  user.password = u.password;
+  user.roles = u.role;
+  user.nombre = u.nombre;
+  return user;
   }
 }

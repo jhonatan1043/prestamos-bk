@@ -12,6 +12,13 @@ export class ClientesService {
   ) {}
 
   async create(dto: CreateClienteDto) {
+    // Validar si ya existe un cliente con la misma identificación
+    const clientes = await this.clienteRepository.findAll();
+    const existe = clientes.find(c => c.identificacion === dto.identificacion);
+    if (existe) {
+      // Lanzar excepción si ya existe
+      throw new (await import('@nestjs/common')).ConflictException('El cliente ya está registrado');
+    }
     const cliente = new Cliente(
       null,
       dto.tipoIdentificacion,
@@ -20,6 +27,7 @@ export class ClientesService {
       dto.apellidos,
       dto.direccion,
       dto.telefono,
+      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad
     );
     return this.clienteRepository.create(cliente);
@@ -36,6 +44,14 @@ export class ClientesService {
   }
 
   async update(id: number, dto: UpdateClienteDto) {
+    // Validar que no se duplique la identificación con otro cliente
+    if (dto.identificacion) {
+      const clientes = await this.clienteRepository.findAll();
+      const existe = clientes.find(c => c.identificacion === dto.identificacion && c.id !== id);
+      if (existe) {
+        throw new (await import('@nestjs/common')).ConflictException('Ya existe otro cliente con esa identificación');
+      }
+    }
     const cliente = new Cliente(
       id,
       dto.tipoIdentificacion ?? '',
@@ -43,13 +59,25 @@ export class ClientesService {
       dto.nombres ?? '',
       dto.apellidos ?? '',
       dto.direccion ?? '',
-      dto.telefono ?? 0,
+      dto.telefono ?? '',
+      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad,
     );
     return this.clienteRepository.update(cliente);
   }
 
   async remove(id: number) {
+    const cliente = await this.clienteRepository.findById(id);
+    if (!cliente) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
     return this.clienteRepository.remove(id);
   }
+
+    async buscarPorIdentificacion(identificacion: string) {
+      const clientes = await this.clienteRepository.findAll();
+      const cliente = clientes.find(c => c.identificacion === identificacion && c.estadoId === 1);
+      if (!cliente) throw new NotFoundException('Cliente no encontrado o no está activo');
+      return cliente;
+    }
 }
