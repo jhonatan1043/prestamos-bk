@@ -22,12 +22,12 @@ jobs:
       - name: Sync project to VPS
         run: |
           RSYNC_EXCLUDES="--exclude .git --exclude node_modules --exclude .env --exclude .github"
-          rsync -avz --delete $RSYNC_EXCLUDES -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/myapp/
+          rsync -avz --delete $RSYNC_EXCLUDES -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/apps/prestamos-bk
 
       - name: Deploy using Docker Compose
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd /srv/myapp
+            cd /srv/apps/prestamos-bk
             docker compose pull || true
             docker compose up -d --build
             docker image prune -f
