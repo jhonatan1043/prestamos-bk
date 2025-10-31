@@ -21,7 +21,7 @@ jobs:
 
       - name: Sync project to VPS
         run: |
-          RSYNC_EXCLUDES="--exclude .git --exclude node_modules --exclude .env --exclude .github"
+          RSYNC_EXCLUDES="--exclude .git --exclude node_modules --exclude .env --exclude .github --exclude nginx/log --exclude nginx/conf.d --exclude nginx/certs"
           rsync -avz --delete $RSYNC_EXCLUDES -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/apps/prestamos-bk
 
       - name: Deploy using Docker Compose
