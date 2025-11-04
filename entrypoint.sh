@@ -20,21 +20,27 @@ fi
 
 # ========================================================
 # 🧩 Configuración base con valores por defecto
+# - POSTGRES_PORT = puerto del servidor Postgres
+# - PORT = puerto donde la APP escuchará (no lo sobrescribiremos)
 # ========================================================
 HOST=${POSTGRES_HOST:-postgres_db}
-PORT=${POSTGRES_PORT:-5432}
+POSTGRES_PORT=${POSTGRES_PORT:-5432}
 USER=${POSTGRES_USER:-postgres}
 DB=${POSTGRES_DB:-prestamos_db}
+
+# App port: respeta la variable PORT si ya está definida, si no usa 3000
+PORT=${PORT:-3000}
+
 RETRIES=${DB_RETRY_COUNT:-60}
 SLEEP=${DB_RETRY_SLEEP:-2}
 
-echo "Esperando a que la base de datos esté disponible en ${HOST}:${PORT} (usuario=${USER}, db=${DB})..."
+echo "Esperando a que la base de datos esté disponible en ${HOST}:${POSTGRES_PORT} (usuario=${USER}, db=${DB})..."
 
 # ========================================================
 # ⏳ Espera a que la base de datos esté lista
 # ========================================================
 i=0
-until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DB" -c '\q' >/dev/null 2>&1; do
+until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$HOST" -p "$POSTGRES_PORT" -U "$USER" -d "$DB" -c '\q' >/dev/null 2>&1; do
   i=$((i+1))
   if [ "$i" -ge "$RETRIES" ]; then
     echo "❌ ERROR: No se pudo conectar a la base de datos después de $RETRIES intentos."
@@ -53,7 +59,7 @@ echo "✅ Base de datos disponible."
 if command -v npx >/dev/null 2>&1; then
   echo "Ejecutando prisma generate..."
   npx prisma generate || echo "⚠️ Advertencia: 'prisma generate' falló, continuando..."
-  
+
   echo "Aplicando migraciones (prisma migrate deploy)..."
   npx prisma migrate deploy || echo "⚠️ Advertencia: 'prisma migrate deploy' falló, continuando..."
 else
@@ -62,7 +68,8 @@ fi
 
 # ========================================================
 # 🚀 Arranque de la aplicación
+# - export PORT por si la app lee process.env.PORT
 # ========================================================
-echo "Arrancando la aplicación Node..."
+export PORT
+echo "Arrancando la aplicación Node en puerto ${PORT}..."
 exec node dist/src/main.js
-
