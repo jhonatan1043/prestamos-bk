@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
+# ========================================================
+# ✅ Normaliza variables POSTGRES_* desde DATABASE_URL (si faltan)
+# ========================================================
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PORT" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_DB" ]; then
+  if [ -n "$DATABASE_URL" ]; then
+    echo "Detectada DATABASE_URL, extrayendo valores..."
+    hostport_and_rest="${DATABASE_URL##*@}"   # host:port/db
+    hostport="${hostport_and_rest%%/*}"       # host:port
+    POSTGRES_HOST="${POSTGRES_HOST:-${hostport%%:*}}"
+    POSTGRES_PORT="${POSTGRES_PORT:-${hostport##*:}}"
+    userpass_and_rest="${DATABASE_URL#*//}"   # user:pass@host
+    userpass="${userpass_and_rest%%@*}"
+    POSTGRES_USER="${POSTGRES_USER:-${userpass%%:*}}"
+    POSTGRES_DB="${POSTGRES_DB:-${DATABASE_URL##*/}}"
+  fi
+fi
+
+# ========================================================
+# 🧩 Configuración base con valores por defecto
+# ========================================================
 HOST=${POSTGRES_HOST:-postgres_db}
 PORT=${POSTGRES_PORT:-5432}
 USER=${POSTGRES_USER:-postgres}
@@ -10,32 +30,38 @@ SLEEP=${DB_RETRY_SLEEP:-2}
 
 echo "Esperando a que la base de datos esté disponible en ${HOST}:${PORT} (usuario=${USER}, db=${DB})..."
 
+# ========================================================
+# ⏳ Espera a que la base de datos esté lista
+# ========================================================
 i=0
 until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DB" -c '\q' >/dev/null 2>&1; do
   i=$((i+1))
   if [ "$i" -ge "$RETRIES" ]; then
-    echo "ERROR: No se pudo conectar a la base de datos después de $RETRIES intentos."
+    echo "❌ ERROR: No se pudo conectar a la base de datos después de $RETRIES intentos."
+    echo "Revisa si el contenedor de Postgres (${HOST}) está corriendo y accesible."
     exit 1
   fi
   echo "-> intento $i/$RETRIES: Postgres no listo, esperando ${SLEEP}s..."
   sleep "$SLEEP"
 done
 
-echo "Base de datos ok. Ejecutando prisma generate..."
+echo "✅ Base de datos disponible."
+
+# ========================================================
+# 🧱 Prisma
+# ========================================================
 if command -v npx >/dev/null 2>&1; then
-  npx prisma generate
+  echo "Ejecutando prisma generate..."
+  npx prisma generate || echo "⚠️ Advertencia: 'prisma generate' falló, continuando..."
+  
+  echo "Aplicando migraciones (prisma migrate deploy)..."
+  npx prisma migrate deploy || echo "⚠️ Advertencia: 'prisma migrate deploy' falló, continuando..."
 else
-  echo "Aviso: npx no encontrado. Se omite 'prisma generate'."
+  echo "⚠️ Aviso: npx no encontrado. Saltando pasos de Prisma."
 fi
 
-echo "Intentando aplicar migraciones (prisma migrate deploy) si está disponible..."
-if command -v npx >/dev/null 2>&1; then
-  if ! npx prisma migrate deploy; then
-    echo "Advertencia: 'prisma migrate deploy' devolvió error (se continúa)."
-  fi
-else
-  echo "Aviso: npx no encontrado. Skipping migrations (ejecuta migraciones desde CI o contenedor temporal)."
-fi
-
-echo "Arrancando la aplicación..."
+# ========================================================
+# 🚀 Arranque de la aplicación
+# ========================================================
+echo "Arrancando la aplicación Node..."
 exec node dist/main.js
