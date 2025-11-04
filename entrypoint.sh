@@ -64,4 +64,5 @@ fi
 # 🚀 Arranque de la aplicación
 # ========================================================
 echo "Arrancando la aplicación Node..."
-exec node dist/main.js
+exec node dist/src/main.js
+
