@@ -48,6 +48,7 @@ model User {
   updatedAt DateTime  @updatedAt
   cobrador  Cobrador?
   prestamos Prestamo[]
+  gastos    Gasto[]
 }
 
 model Cliente {
@@ -106,4 +107,17 @@ enum TipoPlazo {
   DIA
   SEMANA
   MES
+}
+
+model Gasto {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  monto       Decimal  @db.Decimal(12, 2)
+  fecha       DateTime
+  categoria   String
+  active      Boolean  @default(true)
+  usuarioId   Int
+  usuario     User     @relation(fields: [usuarioId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
