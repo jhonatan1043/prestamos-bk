@@ -6,4 +6,9 @@ export class Cobrador {
 
   @ApiProperty()
   usuarioId: number;
+
+  constructor(id: number, usuarioId: number) {
+    this.id = id;
+    this.usuarioId = usuarioId;
+  }
 }
