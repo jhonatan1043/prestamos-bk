@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 export class Cliente {
+    @ApiProperty()
+    active: boolean;
   @ApiProperty()
   id: number | null;
 
@@ -35,6 +37,7 @@ export class Cliente {
     direccion: string,
     telefono: string,
     edad?: number,
+    active: boolean = true,
   ) {
     this.id = id;
     this.tipoIdentificacion = tipoIdentificacion;
@@ -44,6 +47,7 @@ export class Cliente {
     this.direccion = direccion;
     this.telefono = telefono;
     this.edad = edad;
+    this.active = active;
   }
 
   get nombreCompleto(): string {

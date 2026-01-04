@@ -15,4 +15,7 @@ export class User {
 
   @ApiProperty()
   nombre: string;
+
+  @ApiProperty()
+  active: boolean;
 }

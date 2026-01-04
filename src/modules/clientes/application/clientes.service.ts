@@ -16,7 +16,18 @@ export class ClientesService {
     const clientes = await this.clienteRepository.findAll();
     const existe = clientes.find(c => c.identificacion === dto.identificacion);
     if (existe) {
-      // Lanzar excepción si ya existe
+      if (existe.active === false) {
+        // Reactivar cliente inactivo
+        existe.tipoIdentificacion = dto.tipoIdentificacion;
+        existe.nombres = dto.nombres;
+        existe.apellidos = dto.apellidos;
+        existe.direccion = dto.direccion;
+        existe.telefono = dto.telefono;
+        existe.edad = dto.edad;
+        existe.active = true;
+        return await this.clienteRepository.update(existe);
+      }
+      // Lanzar excepción si ya existe activo
       throw new (await import('@nestjs/common')).ConflictException('El cliente ya está registrado');
     }
     const cliente = new Cliente(
@@ -29,7 +40,7 @@ export class ClientesService {
       dto.telefono,
       dto.edad
     );
-    return this.clienteRepository.create(cliente);
+    return await this.clienteRepository.create(cliente);
   }
 
   async findAll() {

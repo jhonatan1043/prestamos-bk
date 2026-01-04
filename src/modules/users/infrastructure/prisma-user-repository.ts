@@ -9,13 +9,17 @@ export class PrismaUserRepository implements IUserRepository {
 
   async create(data: Omit<User, 'id'>): Promise<User> {
     const created = await this.prisma.user.create({
-      data: data,
+        data: {
+          ...data,
+          active: data.active ?? true
+        },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -26,17 +30,20 @@ export class PrismaUserRepository implements IUserRepository {
     user.email = created.email;
     user.password = created.password;
     user.role = created.role;
+      user.active = created.active;
     return user;
   }
 
   async findAll(): Promise<User[]> {
     const users = await this.prisma.user.findMany({
+      where: { active: true },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -61,6 +68,7 @@ export class PrismaUserRepository implements IUserRepository {
         email: true,
         password: true,
         role: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -84,6 +92,7 @@ export class PrismaUserRepository implements IUserRepository {
         email: true,
         password: true,
         role: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -108,6 +117,7 @@ export class PrismaUserRepository implements IUserRepository {
         email: true,
         password: true,
         role: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -118,10 +128,11 @@ export class PrismaUserRepository implements IUserRepository {
     user.email = updated.email;
     user.password = updated.password;
     user.role = updated.role;
+    user.active = updated.active;
     return user;
   }
 
   async delete(id: number): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.user.update({ where: { id }, data: { active: false } });
   }
 }

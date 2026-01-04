@@ -32,7 +32,7 @@ export class PrismaClienteRepository implements IClienteRepository {
   }
 
   async findAll(): Promise<Cliente[]> {
-    const clientes = await this.prisma.cliente.findMany();
+    const clientes = await this.prisma.cliente.findMany({ where: { active: true } });
     return clientes.map(
       (c) =>
         new Cliente(
@@ -89,6 +89,6 @@ export class PrismaClienteRepository implements IClienteRepository {
   }
 
   async remove(id: number): Promise<void> {
-    await this.prisma.cliente.delete({ where: { id } });
+    await this.prisma.cliente.update({ where: { id }, data: { active: false } });
   }
 }
