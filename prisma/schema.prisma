@@ -43,8 +43,6 @@ model User {
   email     String    @unique
   password  String
   role      String
-  estadoId  Int
-  estado    Estado    @relation(fields: [estadoId], references: [id])
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   cobrador  Cobrador?
@@ -60,8 +58,6 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
-  estadoId           Int
-  estado             Estado     @relation(fields: [estadoId], references: [id])
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   prestamos          Prestamo[]
@@ -102,8 +98,6 @@ model Estado {
   nombre    String     @unique
   prestamos Prestamo[]
   pagos     Pago[]
-  clientes  Cliente[]
-  usuarios  User[]
 }
 
 enum TipoPlazo {

@@ -20,8 +20,7 @@ export class UserService {
     return this.repo.create({
       ...dto,
       password: hashedPassword,
-      role: dto.role,
-      estadoId: dto.estadoId ?? 1 // 1 = ACTIVO por defecto
+      role: dto.role
     });
   }
 

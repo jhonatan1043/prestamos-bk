@@ -27,7 +27,6 @@ export class ClientesService {
       dto.apellidos,
       dto.direccion,
       dto.telefono,
-      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad
     );
     return this.clienteRepository.create(cliente);
@@ -60,7 +59,6 @@ export class ClientesService {
       dto.apellidos ?? '',
       dto.direccion ?? '',
       dto.telefono ?? '',
-      dto.estadoId ?? 1, // 1 = ACTIVO por defecto
       dto.edad,
     );
     return this.clienteRepository.update(cliente);
@@ -76,7 +74,7 @@ export class ClientesService {
 
     async buscarPorIdentificacion(identificacion: string) {
       const clientes = await this.clienteRepository.findAll();
-      const cliente = clientes.find(c => c.identificacion === identificacion && c.estadoId === 1);
+      const cliente = clientes.find(c => c.identificacion === identificacion);
       if (!cliente) throw new NotFoundException('Cliente no encontrado o no está activo');
       return cliente;
     }

@@ -10,14 +10,13 @@ export class PrismaClienteRepository implements IClienteRepository {
   async create(cliente: Cliente): Promise<Cliente> {
     const created = await this.prisma.cliente.create({
       data: {
-      tipoIdentificacion: cliente.tipoIdentificacion,
-      identificacion: cliente.identificacion,
-      nombres: cliente.nombres,
-      apellidos: cliente.apellidos,
-  edad: cliente.edad,
-  direccion: cliente.direccion,
-  telefono: cliente.telefono,
-  estado: { connect: { id: cliente.estadoId } },
+        tipoIdentificacion: cliente.tipoIdentificacion,
+        identificacion: cliente.identificacion,
+        nombres: cliente.nombres,
+        apellidos: cliente.apellidos,
+        edad: cliente.edad,
+        direccion: cliente.direccion,
+        telefono: cliente.telefono,
       },
     });
     return new Cliente(
@@ -28,7 +27,6 @@ export class PrismaClienteRepository implements IClienteRepository {
       created.apellidos,
       created.direccion,
       created.telefono,
-  created.estadoId,
       created.edad === null ? undefined : created.edad
     );
   }
@@ -45,7 +43,6 @@ export class PrismaClienteRepository implements IClienteRepository {
           c.apellidos,
           c.direccion,
           c.telefono,
-          c.estadoId,
           c.edad === null ? undefined : c.edad
         ),
     );
@@ -62,7 +59,6 @@ export class PrismaClienteRepository implements IClienteRepository {
       c.apellidos,
       c.direccion,
       c.telefono,
-  c.estadoId,
       c.edad === null ? undefined : c.edad
     );
   }
@@ -75,11 +71,9 @@ export class PrismaClienteRepository implements IClienteRepository {
         identificacion: cliente.identificacion,
         nombres: cliente.nombres,
         apellidos: cliente.apellidos,
-  edad: cliente.edad,
-  direccion: cliente.direccion,
-  telefono: cliente.telefono,
-  estado: { connect: { id: cliente.estadoId } },
-        
+        edad: cliente.edad,
+        direccion: cliente.direccion,
+        telefono: cliente.telefono,
       },
     });
     return new Cliente(
@@ -90,7 +84,6 @@ export class PrismaClienteRepository implements IClienteRepository {
       updated.apellidos,
       updated.direccion,
       updated.telefono,
-  updated.estadoId,
       updated.edad === null ? undefined : updated.edad
     );
   }
