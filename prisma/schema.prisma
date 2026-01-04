@@ -43,6 +43,7 @@ model User {
   email     String    @unique
   password  String
   role      String
+  active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   cobrador  Cobrador?
@@ -58,6 +59,7 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
+  active             Boolean    @default(true)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   prestamos          Prestamo[]
