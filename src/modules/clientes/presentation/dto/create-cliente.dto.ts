@@ -2,10 +2,6 @@ import { IsString, IsOptional, IsInt, isString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateClienteDto {
-  @ApiProperty({ description: 'Id del estado del cliente', required: false, example: 1 })
-  @IsOptional()
-  @IsInt()
-  estadoId?: number;
   @ApiProperty({
     description: 'Tipo de identificación del cliente (CC, TI, etc.)',
   })

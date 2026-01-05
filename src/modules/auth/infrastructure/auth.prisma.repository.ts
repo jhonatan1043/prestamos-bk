@@ -16,6 +16,7 @@ export class PrismaAuthRepository implements AuthRepository {
   user.password = u.password;
   user.roles = u.role;
   user.nombre = u.nombre;
+  user.active = u.active; // Agregar el campo active
   return user;
   }
 }

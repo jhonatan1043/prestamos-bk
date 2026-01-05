@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class User {
+
+  @ApiProperty()
+  active: boolean;
+
   @ApiProperty()
   id: number;
 
@@ -15,10 +19,5 @@ export class User {
 
   @ApiProperty()
   role: string;
-  
-  @ApiProperty()
-  estadoId: number;
-  // Relación opcional para incluir el objeto Estado si se desea
-  estado?: any;
 }
 

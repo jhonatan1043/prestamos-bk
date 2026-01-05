@@ -43,12 +43,12 @@ model User {
   email     String    @unique
   password  String
   role      String
-  estadoId  Int
-  estado    Estado    @relation(fields: [estadoId], references: [id])
+  active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   cobrador  Cobrador?
   prestamos Prestamo[]
+  gastos    Gasto[]
 }
 
 model Cliente {
@@ -60,8 +60,7 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
-  estadoId           Int
-  estado             Estado     @relation(fields: [estadoId], references: [id])
+  active             Boolean    @default(true)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   prestamos          Prestamo[]
@@ -102,12 +101,23 @@ model Estado {
   nombre    String     @unique
   prestamos Prestamo[]
   pagos     Pago[]
-  clientes  Cliente[]
-  usuarios  User[]
 }
 
 enum TipoPlazo {
   DIA
   SEMANA
   MES
+}
+
+model Gasto {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  monto       Decimal  @db.Decimal(12, 2)
+  fecha       DateTime
+  categoria   String
+  active      Boolean  @default(true)
+  usuarioId   Int
+  usuario     User     @relation(fields: [usuarioId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

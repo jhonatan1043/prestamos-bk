@@ -8,17 +8,18 @@ export class PrismaUserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
   async create(data: Omit<User, 'id'>): Promise<User> {
-    // Asegura que estado siempre esté presente
-    const { estadoId, ...rest } = data;
     const created = await this.prisma.user.create({
-      data: { ...rest, estado: { connect: { id: estadoId } } },
+        data: {
+          ...data,
+          active: data.active ?? true
+        },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
-        estadoId: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -29,19 +30,20 @@ export class PrismaUserRepository implements IUserRepository {
     user.email = created.email;
     user.password = created.password;
     user.role = created.role;
-    user.estadoId = created.estadoId;
+      user.active = created.active;
     return user;
   }
 
   async findAll(): Promise<User[]> {
     const users = await this.prisma.user.findMany({
+      where: { active: true },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
-        estadoId: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -53,7 +55,6 @@ export class PrismaUserRepository implements IUserRepository {
       user.password = u.password;
       user.role = u.role;
       user.nombre = u.nombre;
-      user.estadoId = u.estadoId;
       return user;
     });
   }
@@ -67,7 +68,7 @@ export class PrismaUserRepository implements IUserRepository {
         email: true,
         password: true,
         role: true,
-        estadoId: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -79,7 +80,6 @@ export class PrismaUserRepository implements IUserRepository {
     user.password = u.password;
     user.role = u.role;
     user.nombre = u.nombre;
-    user.estadoId = u.estadoId;
     return user;
   }
 
@@ -92,7 +92,7 @@ export class PrismaUserRepository implements IUserRepository {
         email: true,
         password: true,
         role: true,
-        estadoId: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -104,23 +104,20 @@ export class PrismaUserRepository implements IUserRepository {
     user.password = u.password;
     user.role = u.role;
     user.nombre = u.nombre;
-    user.estadoId = u.estadoId;
     return user;
   }
 
   async update(id: number, data: Partial<User>): Promise<User> {
-    // Asegura que estado siempre esté presente
-    const { estadoId, id: _omitId, ...rest } = data;
     const updated = await this.prisma.user.update({
       where: { id },
-      data: { ...rest, estado: estadoId ? { connect: { id: estadoId } } : undefined },
+      data: data,
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
-        estadoId: true,
+        active: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -131,11 +128,11 @@ export class PrismaUserRepository implements IUserRepository {
     user.email = updated.email;
     user.password = updated.password;
     user.role = updated.role;
-    user.estadoId = updated.estadoId;
+    user.active = updated.active;
     return user;
   }
 
   async delete(id: number): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.user.update({ where: { id }, data: { active: false } });
   }
 }

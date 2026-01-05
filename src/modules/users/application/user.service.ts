@@ -11,9 +11,13 @@ export class UserService {
   ) {}
 
   async create(dto: CreateUserDto) {
-    // Validar que no se repita el correo
+    // Validar si existe usuario con el mismo email
     const exists = await this.repo.findByEmail(dto.email);
     if (exists) {
+      if (exists.active === false) {
+        // Reactivar usuario inactivo
+        return this.repo.update(exists.id, { ...dto, password: await bcrypt.hash(dto.password, 10), active: true });
+      }
       throw new (await import('@nestjs/common')).ConflictException('El correo ya está registrado');
     }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -21,7 +25,7 @@ export class UserService {
       ...dto,
       password: hashedPassword,
       role: dto.role,
-      estadoId: dto.estadoId ?? 1 // 1 = ACTIVO por defecto
+      active: true
     });
   }
 

@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 export class Cliente {
+    @ApiProperty()
+    active: boolean;
   @ApiProperty()
   id: number | null;
 
@@ -24,10 +26,7 @@ export class Cliente {
   @ApiProperty({ required: false })
   edad?: number;
 
-  @ApiProperty()
-  estadoId: number;
-  // Relación opcional para incluir el objeto Estado si se desea
-  estado?: any;
+
 
   constructor(
     id: number | null,
@@ -37,9 +36,8 @@ export class Cliente {
     apellidos: string,
     direccion: string,
     telefono: string,
-    estadoId: number,
     edad?: number,
-    estado?: any,
+    active: boolean = true,
   ) {
     this.id = id;
     this.tipoIdentificacion = tipoIdentificacion;
@@ -48,9 +46,8 @@ export class Cliente {
     this.apellidos = apellidos;
     this.direccion = direccion;
     this.telefono = telefono;
-    this.estadoId = estadoId;
     this.edad = edad;
-    this.estado = estado;
+    this.active = active;
   }
 
   get nombreCompleto(): string {

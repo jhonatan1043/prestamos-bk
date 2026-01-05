@@ -22,7 +22,11 @@ export class NominatimProvider implements IGeocodingProvider {
   async searchAddress(query: string): Promise<any> {
     const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}&format=json`;
     const response = await firstValueFrom(this.httpService.get(url));
-    return response.data;
+    // Solo retornar el campo display_name de cada resultado
+    if (Array.isArray(response.data)) {
+      return response.data.map((item: any) => item.display_name);
+    }
+    return [];
   }
 
   async reverseGeocode(lat: string, lon: string): Promise<any> {

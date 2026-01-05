@@ -15,10 +15,12 @@ export class AuthService {
   async validateUser(username: string, password: string) {
     const user = await this.authRepository.findByUsername(username);
     if (!user) throw new UnauthorizedException('Credenciales inválidas');
-
+    // Validar si el usuario está activo
+    if (user.active === false) {
+      throw new UnauthorizedException('Usuario inactivo');
+    }
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
-
     return user;
   }
 
