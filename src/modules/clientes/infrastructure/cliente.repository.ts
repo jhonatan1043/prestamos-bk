@@ -17,6 +17,7 @@ export class PrismaClienteRepository implements IClienteRepository {
         edad: cliente.edad,
         direccion: cliente.direccion,
         telefono: cliente.telefono,
+        sectorId: cliente.sectorId,
       },
     });
     return new Cliente(
@@ -27,6 +28,7 @@ export class PrismaClienteRepository implements IClienteRepository {
       created.apellidos,
       created.direccion,
       created.telefono,
+      created.sectorId,
       created.edad === null ? undefined : created.edad
     );
   }
@@ -43,6 +45,7 @@ export class PrismaClienteRepository implements IClienteRepository {
           c.apellidos,
           c.direccion,
           c.telefono,
+          c.sectorId,
           c.edad === null ? undefined : c.edad
         ),
     );
@@ -59,6 +62,7 @@ export class PrismaClienteRepository implements IClienteRepository {
       c.apellidos,
       c.direccion,
       c.telefono,
+      c.sectorId,
       c.edad === null ? undefined : c.edad
     );
   }
@@ -74,6 +78,7 @@ export class PrismaClienteRepository implements IClienteRepository {
         edad: cliente.edad,
         direccion: cliente.direccion,
         telefono: cliente.telefono,
+        sectorId: cliente.sectorId,
       },
     });
     return new Cliente(
@@ -84,6 +89,7 @@ export class PrismaClienteRepository implements IClienteRepository {
       updated.apellidos,
       updated.direccion,
       updated.telefono,
+      updated.sectorId,
       updated.edad === null ? undefined : updated.edad
     );
   }
