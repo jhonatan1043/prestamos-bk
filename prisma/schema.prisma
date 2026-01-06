@@ -7,21 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Cobrador {
-  id        Int      @id @default(autoincrement())
-  usuarioId Int      @unique
-  usuario   User     @relation(fields: [usuarioId], references: [id])
-  rutas     Ruta[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Ruta {
   id         Int      @id @default(autoincrement())
   nombre     String
   sector     String
   cobradorId Int
-  cobrador   Cobrador @relation(fields: [cobradorId], references: [id])
+  cobrador   User     @relation(fields: [cobradorId], references: [id])
   clientes   Cliente[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -46,7 +37,7 @@ model User {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  cobrador  Cobrador?
+  rutas     Ruta[]
   prestamos Prestamo[]
   gastos    Gasto[]
 }
