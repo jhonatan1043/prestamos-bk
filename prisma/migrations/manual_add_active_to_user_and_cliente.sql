@@ -1,3 +1,0 @@
--- Agregar campo active a User y Cliente
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "active" BOOLEAN DEFAULT TRUE;
-ALTER TABLE "Cliente" ADD COLUMN IF NOT EXISTS "active" BOOLEAN DEFAULT TRUE;
