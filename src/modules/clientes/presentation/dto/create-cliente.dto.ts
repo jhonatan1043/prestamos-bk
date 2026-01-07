@@ -3,9 +3,17 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateClienteDto {
   @ApiProperty({
+    description: 'Correo electrónico del cliente',
+    required: true,
+  })
+
+  @IsString()
+  correo: string;
+  @ApiProperty({
     description: 'ID del sector (ruta) al que pertenece el cliente',
     required: true,
   })
+  
   @IsInt()
   sectorId: number;
   @ApiProperty({
