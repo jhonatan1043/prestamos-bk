@@ -39,7 +39,8 @@ export class ClientesService {
       dto.direccion,
       dto.telefono,
       dto.sectorId,
-      dto.edad ?? undefined
+      dto.correo,
+      dto.edad,
     );
     return await this.clienteRepository.create(cliente);
   }
@@ -72,7 +73,8 @@ export class ClientesService {
       dto.direccion ?? '',
       dto.telefono ?? '',
       dto.sectorId ?? 0,
-      dto.edad ?? undefined,
+      dto.correo ?? '',
+      dto.edad,
     );
     return this.clienteRepository.update(cliente);
   }

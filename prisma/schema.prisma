@@ -52,6 +52,7 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
+  correo             String
   sectorId           Int
   sector             Ruta       @relation("SectorRuta", fields: [sectorId], references: [id])
   active             Boolean    @default(true)
