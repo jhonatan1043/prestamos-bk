@@ -32,7 +32,20 @@ export class PrismaPrestamoRepository {
   }
 
   async findAll() {
-  return this.prisma.prestamo.findMany({ include: { cliente: true, estado: true } });
+  return this.prisma.prestamo.findMany({
+    include: {
+      cliente: {
+        include: {
+          sector: {
+            include: {
+              cobrador: true
+            }
+          }
+        }
+      },
+      estado: true
+    }
+  });
   }
 
   async findById(id: number) {
