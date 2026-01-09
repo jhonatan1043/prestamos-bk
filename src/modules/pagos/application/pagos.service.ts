@@ -195,6 +195,27 @@ export class PagosService {
         );
       }
     }
+
+    // Verificar si el préstamo está completamente pagado
+    const prestamoActualizado = await this.prisma.prestamo.findUnique({
+      where: { id: dto.prestamoId },
+      include: { pagos: true },
+    });
+    if (prestamoActualizado) {
+      const totalPagado = prestamoActualizado.pagos.reduce((sum, p) => sum + Number(p.monto), 0);
+      if (totalPagado >= Number(prestamoActualizado.monto)) {
+        // Buscar el estado FINALIZADO
+        const estados = await this.estadoRepository.findAll();
+        const estadoFinalizado = estados.find(e => e.nombre === 'FINALIZADO');
+        if (estadoFinalizado) {
+          await this.prisma.prestamo.update({
+            where: { id: dto.prestamoId },
+            data: { estadoId: estadoFinalizado.id },
+          });
+        }
+      }
+    }
+
     return pagosRegistrados;
   }
 

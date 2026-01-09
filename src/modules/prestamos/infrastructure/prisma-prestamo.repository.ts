@@ -32,7 +32,20 @@ export class PrismaPrestamoRepository {
   }
 
   async findAll() {
-  return this.prisma.prestamo.findMany({ include: { cliente: true, estado: true } });
+  return this.prisma.prestamo.findMany({
+    include: {
+      cliente: {
+        include: {
+          sector: {
+            include: {
+              cobrador: true
+            }
+          }
+        }
+      },
+      estado: true
+    }
+  });
   }
 
   async findById(id: number) {
@@ -52,7 +65,17 @@ export class PrismaPrestamoRepository {
   }
 
   async delete(id: number) {
-    return this.prisma.prestamo.delete({ where: { id } });
+    // Cambiar estado del préstamo a CANCELADO (id: 2)
+    const prestamoActualizado = await this.prisma.prestamo.update({
+      where: { id },
+      data: { estadoId: 2 },
+    });
+    // Cambiar estado de todos los pagos asociados a CANCELADO (id: 2)
+    await this.prisma.pago.updateMany({
+      where: { prestamoId: id },
+      data: { estadoId: 2 },
+    });
+    return prestamoActualizado;
   }
 
   async findByClienteIdentificacion(identificacion: string) {
