@@ -31,7 +31,17 @@ export class PrestamosService {
     const estadosValidos = ['ACTIVO', 'CANCELADO', 'FINALIZADO'];
     const estado = await this.estadoRepository.findById(data.estadoId);
     if (!estado || !estadosValidos.includes(estado.nombre)) {
-      throw new (await import('@nestjs/common')).BadRequestException('Estado inválido');
+      // Validar tipoPrestamo
+      if (!['FIJO', 'SOBRE_SALDO'].includes(data.tipoPrestamo)) {
+        throw new Error('tipoPrestamo debe ser FIJO o SOBRE_SALDO');
+      }
+      // Convertir fechaInicio a Date
+      const prestamo = await this.prestamoRepository.create({
+        ...data,
+        fechaInicio: new Date(data.fechaInicio),
+        tipoPrestamo: data.tipoPrestamo,
+      });
+      return prestamo;
     }
     // Validar código único
     const prestamos = await this.prestamoRepository.findAll();
@@ -54,7 +64,11 @@ export class PrestamosService {
     // Ejemplo: if (!(await clienteRepository.findById(data.clienteId))) throw new NotFoundException('Cliente no existe');
     // Ejemplo: if (!(await usuarioRepository.findById(data.usuarioId))) throw new NotFoundException('Usuario no existe');
     // usuarioId ya viene en data
-    return this.prestamoRepository.create(data);
+    // Convertir fechaInicio a Date
+    return this.prestamoRepository.create({
+      ...data,
+      fechaInicio: new Date(data.fechaInicio),
+    });
   }
 
   async findAll() {
@@ -67,8 +81,16 @@ export class PrestamosService {
     return prestamo;
   }
 
-  async update(id: number, data: Partial<Prestamo>) {
-    return this.prestamoRepository.update(id, data);
+  async update(id: number, data: import('./dto/update-prestamo.dto').UpdatePrestamoDto) {
+    // Convertir fechaInicio a Date si viene como string
+    const updateData: any = { ...data };
+    if (updateData.fechaInicio && typeof updateData.fechaInicio === 'string') {
+      updateData.fechaInicio = new Date(updateData.fechaInicio);
+    }
+    if (updateData.tipoPrestamo && !['FIJO', 'SOBRE_SALDO'].includes(updateData.tipoPrestamo as string)) {
+      throw new Error('tipoPrestamo debe ser FIJO o SOBRE_SALDO');
+    }
+    return this.prestamoRepository.update(id, updateData);
   }
 
   async delete(id: number) {

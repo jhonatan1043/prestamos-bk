@@ -25,7 +25,7 @@ export class CreatePrestamoDto {
 
     @ApiProperty({ example: '2025-09-04T00:00:00.000Z' })
     @IsDateString()
-    fechaInicio: Date;
+    fechaInicio: string;
 
     @ApiProperty({ example: 1, description: 'ID del estado del préstamo' })
     @IsInt()
@@ -38,4 +38,8 @@ export class CreatePrestamoDto {
     @ApiProperty({ example: 1, description: 'ID del usuario que realiza el préstamo' })
     @IsInt()
     usuarioId: number;
+
+    @ApiProperty({ enum: ['FIJO', 'SOBRE_SALDO'], example: 'FIJO', description: 'Tipo de préstamo: FIJO o SOBRE_SALDO' })
+    @IsString()
+    tipoPrestamo: 'FIJO' | 'SOBRE_SALDO';
 }
