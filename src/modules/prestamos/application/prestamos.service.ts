@@ -31,7 +31,15 @@ export class PrestamosService {
     const estadosValidos = ['ACTIVO', 'CANCELADO', 'FINALIZADO'];
     const estado = await this.estadoRepository.findById(data.estadoId);
     if (!estado || !estadosValidos.includes(estado.nombre)) {
-      throw new (await import('@nestjs/common')).BadRequestException('Estado inválido');
+      // Validar tipoPrestamo
+      if (!['FIJO', 'SOBRE_SALDO'].includes(data.tipoPrestamo)) {
+        throw new Error('tipoPrestamo debe ser FIJO o SOBRE_SALDO');
+      }
+      const prestamo = await this.prestamoRepository.create({
+        ...data,
+        tipoPrestamo: data.tipoPrestamo,
+      });
+      return prestamo;
     }
     // Validar código único
     const prestamos = await this.prestamoRepository.findAll();
@@ -69,6 +77,9 @@ export class PrestamosService {
 
   async update(id: number, data: Partial<Prestamo>) {
     return this.prestamoRepository.update(id, data);
+      if (data.tipoPrestamo && !['FIJO', 'SOBRE_SALDO'].includes(data.tipoPrestamo as string)) {
+        throw new Error('tipoPrestamo debe ser FIJO o SOBRE_SALDO');
+      }
   }
 
   async delete(id: number) {

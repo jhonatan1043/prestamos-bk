@@ -34,15 +34,7 @@ export class PrismaPrestamoRepository {
   async findAll() {
   return this.prisma.prestamo.findMany({
     include: {
-      cliente: {
-        include: {
-          sector: {
-            include: {
-              cobrador: true
-            }
-          }
-        }
-      },
+      cliente: true,
       estado: true
     }
   });

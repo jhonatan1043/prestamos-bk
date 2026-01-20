@@ -13,7 +13,7 @@ model Ruta {
   nombre     String
   sector     String
   cobradorId Int
-  cobrador   User @relation(fields: [cobradorId], references: [id])
+  cobrador   User @relation("RutaCobrador", fields: [cobradorId], references: [id])
   clientes   Cliente[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -38,9 +38,9 @@ model User {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  cobrador  Cobrador?
   prestamos Prestamo[]
   gastos    Gasto[]
+  rutasCobrador Ruta[] @relation("RutaCobrador")
 }
 
 model Cliente {
@@ -52,6 +52,8 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
+  correo             String
+  sectorId           Int
   active             Boolean    @default(true)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt

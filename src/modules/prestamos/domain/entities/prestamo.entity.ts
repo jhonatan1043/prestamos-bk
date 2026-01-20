@@ -41,6 +41,9 @@ export class Prestamo {
   @ApiProperty({ required: false })
   updatedAt?: Date;
 
+  @ApiProperty({ enum: ['FIJO', 'SOBRE_SALDO'], example: 'FIJO', description: 'Tipo de préstamo: FIJO o SOBRE_SALDO' })
+  tipoPrestamo: 'FIJO' | 'SOBRE_SALDO';
+
   @ApiProperty({ example: 1, required: false })
   estadoId?: number;
 }

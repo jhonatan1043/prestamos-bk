@@ -1,9 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 export class Cliente {
   @ApiProperty()
-  correo: string;
-  @ApiProperty()
   active: boolean;
+
+  @ApiProperty()
+  sectorId: number;
+
+  @ApiProperty()
+  correo: string;
 
   @ApiProperty()
   id: number | null;
@@ -28,10 +32,6 @@ export class Cliente {
 
   @ApiProperty({ required: false })
   edad?: number;
-
-  @ApiProperty()
-  sectorId: number;
-
 
   constructor(
     id: number | null,

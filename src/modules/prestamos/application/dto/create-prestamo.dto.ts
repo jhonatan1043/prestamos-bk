@@ -38,4 +38,8 @@ export class CreatePrestamoDto {
     @ApiProperty({ example: 1, description: 'ID del usuario que realiza el préstamo' })
     @IsInt()
     usuarioId: number;
+
+    @ApiProperty({ enum: ['FIJO', 'SOBRE_SALDO'], example: 'FIJO', description: 'Tipo de préstamo: FIJO o SOBRE_SALDO' })
+    @IsString()
+    tipoPrestamo: 'FIJO' | 'SOBRE_SALDO';
 }
