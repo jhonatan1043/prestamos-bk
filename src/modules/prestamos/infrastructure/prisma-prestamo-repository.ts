@@ -17,12 +17,12 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
         tasa: data.tasa,
         plazoDias: data.plazoDias,
         tipoPlazo: data.tipoPlazo,
-        fechaInicio: data.fechaInicio,
+        fechaInicio: typeof data.fechaInicio === 'string' ? new Date(data.fechaInicio) : data.fechaInicio,
         tipoPrestamo: data.tipoPrestamo,
         estadoId: data.estadoId!,
         clienteId: data.clienteId,
         usuarioId: data.usuarioId,
-      } as any, // Forzar el tipo para evitar error de propiedad desconocida
+      } as any,
     });
     return this.toDomain(created);
   }
@@ -37,8 +37,12 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
     return found ? this.toDomain(found) : null;
   }
 
-  async update(id: number, data: UpdatePrestamoDto): Promise<Prestamo> {
-    const updated = await this.prisma.prestamo.update({ where: { id }, data });
+  async update(id: number, data: import('../application/dto/update-prestamo.dto').UpdatePrestamoDto): Promise<Prestamo> {
+    const updateData: any = { ...data };
+    if (updateData.fechaInicio && typeof updateData.fechaInicio === 'string') {
+      updateData.fechaInicio = new Date(updateData.fechaInicio);
+    }
+    const updated = await this.prisma.prestamo.update({ where: { id }, data: updateData });
     return this.toDomain(updated);
   }
 

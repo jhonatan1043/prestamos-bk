@@ -25,7 +25,7 @@ export class CreatePrestamoDto {
 
     @ApiProperty({ example: '2025-09-04T00:00:00.000Z' })
     @IsDateString()
-    fechaInicio: Date;
+    fechaInicio: string;
 
     @ApiProperty({ example: 1, description: 'ID del estado del préstamo' })
     @IsInt()
