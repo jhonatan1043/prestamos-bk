@@ -7,14 +7,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+
 model Ruta {
   id         Int      @id @default(autoincrement())
   nombre     String
   sector     String
   cobradorId Int
-  cobrador   User     @relation(fields: [cobradorId], references: [id])
-  clientes   Cliente[] @relation("SectorRuta")
-  rutasClientes Cliente[] @relation("RutasCliente")
+  cobrador   User @relation(fields: [cobradorId], references: [id])
+  clientes   Cliente[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -38,7 +38,7 @@ model User {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  rutas     Ruta[]
+  cobrador  Cobrador?
   prestamos Prestamo[]
   gastos    Gasto[]
 }
@@ -52,14 +52,11 @@ model Cliente {
   edad               Int?
   direccion          String
   telefono           String
-  correo             String
-  sectorId           Int
-  sector             Ruta       @relation("SectorRuta", fields: [sectorId], references: [id])
   active             Boolean    @default(true)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   prestamos          Prestamo[]
-  rutas              Ruta[] @relation("RutasCliente")
+  rutas              Ruta[]
 }
 
 model Prestamo {
@@ -70,6 +67,7 @@ model Prestamo {
   plazoDias   Int
   tipoPlazo   TipoPlazo  @default(DIA)
   fechaInicio DateTime
+  tipoPrestamo TipoPrestamo @default(FIJO)
   estadoId    Int
   estado      Estado     @relation(fields: [estadoId], references: [id])
   clienteId   Int
@@ -103,6 +101,11 @@ enum TipoPlazo {
   SEMANA
   MES
 }
+
+enum TipoPrestamo {
+    FIJO
+    SOBRE_SALDO
+  }
 
 model Gasto {
   id          Int      @id @default(autoincrement())
