@@ -13,20 +13,25 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
 // @UseGuards(JwtAuthGuard) // 🔒 Solo en métodos específicos
 export class PrestamosController {
-      @Get('filtrar/cobrador/:cobradorId')
-      @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta) - endpoint aparte' })
-      @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-      @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
-      async filtrarPorCobrador(@Param('cobradorId') cobradorId: string) {
-        return this.prestamosService.findByCobrador(Number(cobradorId));
-      }
-    @Get('cobrador/:cobradorId')
-    @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta)' })
-    @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-    @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
-    findByCobrador(@Param('cobradorId') cobradorId: string) {
-      return this.prestamosService.findByCobrador(Number(cobradorId));
-    }
+  @UseGuards(JwtAuthGuard)
+  @Get('filtrar/cobrador/:cobradorId')
+  @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta) - endpoint aparte' })
+  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
+  @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
+  async filtrarPorCobrador(@Param('cobradorId') cobradorId: string) {
+    return this.prestamosService.findByCobrador(Number(cobradorId));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('cobrador/:cobradorId')
+  @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta)' })
+  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
+  @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
+  findByCobrador(@Param('cobradorId') cobradorId: string) {
+    return this.prestamosService.findByCobrador(Number(cobradorId));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('cliente/:identificacion')
   @ApiOperation({ summary: 'Listar préstamos por identificación de cliente' })
   @ApiParam({ name: 'identificacion', type: String, description: 'Identificación del cliente' })
