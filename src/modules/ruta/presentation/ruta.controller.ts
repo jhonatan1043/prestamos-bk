@@ -1,7 +1,9 @@
+
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { RutaService } from '../application/ruta.service';
 import { CreateRutaDto } from '../application/dto/create-ruta.dto';
+import { RutaResumenDetalladoDto } from '../application/dto/ruta-resumen-detallado.dto';
 
 @ApiTags('rutas')
 @ApiBearerAuth()
@@ -22,5 +24,11 @@ export class RutaController {
   @ApiResponse({ status: 200, description: 'Lista de rutas obtenida correctamente.' })
   findAll() {
     return this.rutaService.findAll();
+  }
+  @Get('resumen')
+  @ApiOperation({ summary: 'Resumen detallado de rutas con clientes y préstamos' })
+  @ApiResponse({ status: 200, description: 'Resumen detallado de rutas', type: [RutaResumenDetalladoDto] })
+  findAllResumen() {
+    return this.rutaService.findAllResumenDetallado();
   }
 }

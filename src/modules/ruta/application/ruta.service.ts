@@ -1,3 +1,4 @@
+import { RutaResumenDetalladoDto } from './dto/ruta-resumen-detallado.dto';
 import { Injectable, Inject } from '@nestjs/common';
 import type { IRutaRepository } from '../domain/repositories/ruta.repository';
 import { Ruta } from '../domain/entities/ruta.entity';
@@ -8,7 +9,7 @@ export class RutaService {
   constructor(
     @Inject('IRutaRepository')
     private readonly rutaRepository: IRutaRepository
-  ) {}
+  ) { }
 
   async create(dto: CreateRutaDto) {
     // Aquí deberías mapear CreateRutaDto a Ruta si es necesario
@@ -23,4 +24,9 @@ export class RutaService {
   async findAll() {
     return this.rutaRepository.findAll();
   }
+
+    async findAllResumenDetallado(): Promise<RutaResumenDetalladoDto[]> {
+    return this.rutaRepository.findAllResumenDetallado();
+  }
+
 }
