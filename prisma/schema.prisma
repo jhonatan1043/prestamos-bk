@@ -7,16 +7,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 model Ruta {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   nombre     String
   sector     String
   cobradorId Int
-  cobrador   User @relation("RutaCobrador", fields: [cobradorId], references: [id])
+  cobrador   User      @relation("RutaCobrador", fields: [cobradorId], references: [id])
   clientes   Cliente[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model AuditLog {
@@ -30,17 +29,18 @@ model AuditLog {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  nombre    String
-  email     String    @unique
-  password  String
-  role      String
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  prestamos Prestamo[]
-  gastos    Gasto[]
-  rutasCobrador Ruta[] @relation("RutaCobrador")
+  id            Int        @id @default(autoincrement())
+  nombre        String
+  email         String     @unique
+  password      String
+  role          String
+  active        Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  prestamos     Prestamo[]
+  gastos        Gasto[]
+  rutasCobrador Ruta[]     @relation("RutaCobrador")
+  Cliente       Cliente[]
 }
 
 model Cliente {
@@ -49,11 +49,13 @@ model Cliente {
   identificacion     String     @unique
   nombres            String
   apellidos          String
-  edad               Int?
+  fechaNacimiento    DateTime?
   direccion          String
   telefono           String
   correo             String
   sectorId           Int
+  usuarioId          Int
+  usuario            User       @relation(fields: [usuarioId], references: [id])
   active             Boolean    @default(true)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
@@ -62,33 +64,33 @@ model Cliente {
 }
 
 model Prestamo {
-  id          Int        @id @default(autoincrement())
-  codigo      String     @unique
-  monto       Decimal    @db.Decimal(12, 2)
-  tasa        Float
-  plazoDias   Int
-  tipoPlazo   TipoPlazo  @default(DIA)
-  fechaInicio DateTime
+  id           Int          @id @default(autoincrement())
+  codigo       String       @unique
+  monto        Decimal      @db.Decimal(12, 2)
+  tasa         Float
+  plazoDias    Int
+  tipoPlazo    TipoPlazo    @default(DIA)
+  fechaInicio  DateTime
   tipoPrestamo TipoPrestamo @default(FIJO)
-  estadoId    Int
-  estado      Estado     @relation(fields: [estadoId], references: [id])
-  clienteId   Int
-  usuarioId   Int
-  cliente     Cliente    @relation(fields: [clienteId], references: [id])
-  usuario     User       @relation(fields: [usuarioId], references: [id])
-  pagos       Pago[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  estadoId     Int
+  estado       Estado       @relation(fields: [estadoId], references: [id])
+  clienteId    Int
+  usuarioId    Int
+  cliente      Cliente      @relation(fields: [clienteId], references: [id])
+  usuario      User         @relation(fields: [usuarioId], references: [id])
+  pagos        Pago[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Pago {
-  id         Int       @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   prestamoId Int
   fecha      DateTime
-  monto      Decimal    @db.Decimal(12, 2)
+  monto      Decimal  @db.Decimal(12, 2)
   estadoId   Int
-  estado     Estado     @relation(fields: [estadoId], references: [id])
-  prestamo   Prestamo   @relation(fields: [prestamoId], references: [id])
+  estado     Estado   @relation(fields: [estadoId], references: [id])
+  prestamo   Prestamo @relation(fields: [prestamoId], references: [id])
 }
 
 model Estado {
@@ -105,9 +107,9 @@ enum TipoPlazo {
 }
 
 enum TipoPrestamo {
-    FIJO
-    SOBRE_SALDO
-  }
+  FIJO
+  SOBRE_SALDO
+}
 
 model Gasto {
   id          Int      @id @default(autoincrement())

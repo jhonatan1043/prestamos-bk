@@ -6,6 +6,10 @@ import { Cliente } from '../domain/entities/cliente.entity';
 
 @Injectable()
 export class ClientesService {
+    async findByCobrador(cobradorId: number) {
+      // Busca clientes asignados al cobrador
+      return this.clienteRepository.findByCobrador(cobradorId);
+    }
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: clienteRepository.IClienteRepository,
@@ -23,7 +27,7 @@ export class ClientesService {
         existe.apellidos = dto.apellidos;
         existe.direccion = dto.direccion;
         existe.telefono = dto.telefono;
-        existe.edad = dto.edad;
+        existe.fechaNacimiento = dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined;
         existe.active = true;
         return await this.clienteRepository.update(existe);
       }
@@ -40,7 +44,8 @@ export class ClientesService {
       dto.telefono,
       dto.sectorId,
       dto.correo,
-      dto.edad,
+      dto.usuarioId,
+      dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
     );
     return await this.clienteRepository.create(cliente);
   }
@@ -64,6 +69,11 @@ export class ClientesService {
         throw new (await import('@nestjs/common')).ConflictException('Ya existe otro cliente con esa identificación');
       }
     }
+    // Obtener el cliente actual para preservar usuarioId
+    const clienteActual = await this.clienteRepository.findById(id);
+    if (!clienteActual) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
     const cliente = new Cliente(
       id,
       dto.tipoIdentificacion ?? '',
@@ -74,7 +84,8 @@ export class ClientesService {
       dto.telefono ?? '',
       dto.sectorId ?? 0,
       dto.correo ?? '',
-      dto.edad,
+      clienteActual.usuarioId, // No permitir actualizar usuarioId
+      dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : clienteActual.fechaNacimiento,
     );
     return this.clienteRepository.update(cliente);
   }

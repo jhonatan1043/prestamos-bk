@@ -7,6 +7,9 @@ import type { IEstadoRepository } from '../../estados/domain/repositories/estado
 
 @Injectable()
 export class PrestamosService {
+    async findByCobrador(cobradorId: number) {
+      return this.prestamoRepository.findByCobrador(cobradorId);
+    }
   constructor(
     @Inject('IPrestamoRepository')
     private readonly prestamoRepository: IPrestamoRepository,

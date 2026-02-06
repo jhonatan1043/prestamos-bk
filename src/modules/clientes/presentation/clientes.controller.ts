@@ -11,6 +11,13 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
 @Controller('clientes')
 export class ClientesController {
+    @Get('cobrador/:cobradorId')
+    @ApiOperation({ summary: 'Listar clientes por cobradorId' })
+    @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
+    @ApiResponse({ status: 200, description: 'Listado de clientes filtrado', type: [Cliente] })
+    async findByCobrador(@Param('cobradorId') cobradorId: string) {
+      return await this.clientesService.findByCobrador(Number(cobradorId));
+    }
   constructor(private readonly clientesService: ClientesService) {}
 
     @Get(':identificacion')

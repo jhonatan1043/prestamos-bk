@@ -6,4 +6,5 @@ export interface IClienteRepository {
   findById(id: number): Promise<Cliente | null>;
   update(cliente: Cliente): Promise<Cliente>;
   remove(id: number): Promise<void>;
+  findByCobrador(cobradorId: number): Promise<Cliente[]>;
 }
