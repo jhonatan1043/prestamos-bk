@@ -1,3 +1,4 @@
+// ...existing code...
 import { Controller, Post, Body, Get, Param, UseGuards, Put, Delete } from '@nestjs/common';
 import { ClientesService } from '../application//clientes.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
@@ -11,6 +12,13 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
 @Controller('clientes')
 export class ClientesController {
+      @Get('disponibles')
+      @UseGuards(JwtAuthGuard)
+      @ApiOperation({ summary: 'Listar clientes sin préstamo activo' })
+      @ApiResponse({ status: 200, description: 'Listado de clientes sin préstamo activo', type: [Cliente] })
+      async findDisponibles() {
+        return await this.clientesService.findDisponibles();
+      }
     @Get('cobrador/:cobradorId')
     @ApiOperation({ summary: 'Listar clientes por cobradorId' })
     @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
