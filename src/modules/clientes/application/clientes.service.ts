@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import * as clienteRepository from '../domain/repositories/cliente.repository';
 import { CreateClienteDto } from '../presentation/dto/create-cliente.dto';
 import { UpdateClienteDto } from '../presentation/dto/update-cliente.dto';
@@ -13,7 +14,20 @@ export class ClientesService {
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: clienteRepository.IClienteRepository,
+    private readonly prisma: PrismaService,
   ) {}
+
+  async findDisponibles() {
+    // 1. Obtener todos los clientes activos
+    const clientes = await this.clienteRepository.findAll();
+    // 2. Obtener todos los préstamos activos
+    const estadoActivo = await this.prisma.estado.findUnique({ where: { nombre: 'ACTIVO' } });
+    if (!estadoActivo) return clientes; // Si no hay estado ACTIVO, retorna todos
+    const prestamosActivos = await this.prisma.prestamo.findMany({ where: { estadoId: estadoActivo.id } });
+    const clientesConPrestamoActivo = new Set(prestamosActivos.map(p => p.clienteId));
+    // 3. Filtrar clientes que NO tienen préstamo activo
+    return clientes.filter(c => c.id !== null && !clientesConPrestamoActivo.has(c.id!));
+  }
 
   async create(dto: CreateClienteDto) {
     // Validar si ya existe un cliente con la misma identificación
