@@ -1,8 +1,13 @@
-
 import { IsString, IsOptional, IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateClienteDto {
+  @ApiProperty({
+    description: 'ID del usuario que crea el cliente',
+    required: true,
+  })
+  @IsInt()
+  usuarioId: number;
   @ApiProperty({
     description: 'Correo electrónico del cliente',
     required: true,

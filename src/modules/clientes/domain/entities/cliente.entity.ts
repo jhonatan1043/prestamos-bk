@@ -33,6 +33,9 @@ export class Cliente {
   @ApiProperty({ required: false })
   edad?: number;
 
+  @ApiProperty()
+  usuarioId: number;
+
   constructor(
     id: number | null,
     tipoIdentificacion: string,
@@ -43,6 +46,7 @@ export class Cliente {
     telefono: string,
     sectorId: number,
     correo: string,
+    usuarioId: number,
     edad?: number,
     active: boolean = true,
   ) {
@@ -55,6 +59,7 @@ export class Cliente {
     this.telefono = telefono;
     this.sectorId = sectorId;
     this.correo = correo;
+    this.usuarioId = usuarioId;
     this.edad = edad;
     this.active = active;
   }

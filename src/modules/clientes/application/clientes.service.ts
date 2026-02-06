@@ -40,6 +40,7 @@ export class ClientesService {
       dto.telefono,
       dto.sectorId,
       dto.correo,
+      dto.usuarioId,
       dto.edad,
     );
     return await this.clienteRepository.create(cliente);
@@ -64,6 +65,11 @@ export class ClientesService {
         throw new (await import('@nestjs/common')).ConflictException('Ya existe otro cliente con esa identificación');
       }
     }
+    // Obtener el cliente actual para preservar usuarioId
+    const clienteActual = await this.clienteRepository.findById(id);
+    if (!clienteActual) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
     const cliente = new Cliente(
       id,
       dto.tipoIdentificacion ?? '',
@@ -74,6 +80,7 @@ export class ClientesService {
       dto.telefono ?? '',
       dto.sectorId ?? 0,
       dto.correo ?? '',
+      clienteActual.usuarioId, // No permitir actualizar usuarioId
       dto.edad,
     );
     return this.clienteRepository.update(cliente);
