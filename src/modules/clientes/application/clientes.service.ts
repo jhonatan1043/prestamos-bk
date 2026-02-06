@@ -6,6 +6,10 @@ import { Cliente } from '../domain/entities/cliente.entity';
 
 @Injectable()
 export class ClientesService {
+    async findByCobrador(cobradorId: number) {
+      // Busca clientes asignados al cobrador
+      return this.clienteRepository.findByCobrador(cobradorId);
+    }
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: clienteRepository.IClienteRepository,

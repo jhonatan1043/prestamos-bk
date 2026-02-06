@@ -5,6 +5,37 @@ import { Cliente } from '../domain/entities/cliente.entity';
 
 @Injectable()
 export class PrismaClienteRepository implements IClienteRepository {
+    async findByCobrador(cobradorId: number): Promise<Cliente[]> {
+      // Busca clientes por el cobrador asignado a la ruta
+      // Buscar rutas donde cobradorId coincide
+      const rutas = await this.prisma.ruta.findMany({
+        where: { cobradorId },
+        select: { id: true },
+      });
+      const sectorIds = rutas.map(r => r.id);
+      const clientes = await this.prisma.cliente.findMany({
+        where: {
+          sectorId: { in: sectorIds },
+          active: true,
+        },
+      });
+      return clientes.map(
+        (c) =>
+          new Cliente(
+            c.id,
+            c.tipoIdentificacion,
+            c.identificacion,
+            c.nombres,
+            c.apellidos,
+            c.direccion,
+            c.telefono,
+            c.sectorId,
+            c.correo,
+            c.usuarioId,
+            c.fechaNacimiento ?? undefined
+          ),
+      );
+    }
   constructor(private readonly prisma: PrismaService) {}
 
   async create(cliente: Cliente): Promise<Cliente> {
