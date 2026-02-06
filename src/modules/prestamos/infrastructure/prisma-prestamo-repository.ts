@@ -7,6 +7,23 @@ import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
 
 @Injectable()
 export class PrismaPrestamoRepository implements IPrestamoRepository {
+
+    async findByCobrador(cobradorId: number): Promise<Prestamo[]> {
+      // Buscar rutas donde cobradorId coincide
+      const rutas = await this.prisma.ruta.findMany({
+        where: { cobradorId },
+        select: { id: true },
+      });
+      const sectorIds = rutas.map(r => r.id);
+      const found = await this.prisma.prestamo.findMany({
+        where: {
+          cliente: {
+            sectorId: { in: sectorIds },
+          },
+        },
+      });
+      return found.map(this.toDomain);
+    }
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: Omit<Prestamo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Prestamo> {

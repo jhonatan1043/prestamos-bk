@@ -9,4 +9,5 @@ export interface IPrestamoRepository {
   delete(id: number): Promise<void>;
 
   findByClienteIdentificacion(identificacion: string): Promise<Prestamo[]>;
+  findByCobrador(cobradorId: number): Promise<Prestamo[]>;
 }
