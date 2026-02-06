@@ -23,7 +23,7 @@ export class ClientesService {
         existe.apellidos = dto.apellidos;
         existe.direccion = dto.direccion;
         existe.telefono = dto.telefono;
-        existe.edad = dto.edad;
+        existe.fechaNacimiento = dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined;
         existe.active = true;
         return await this.clienteRepository.update(existe);
       }
@@ -41,7 +41,7 @@ export class ClientesService {
       dto.sectorId,
       dto.correo,
       dto.usuarioId,
-      dto.edad,
+      dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
     );
     return await this.clienteRepository.create(cliente);
   }
@@ -81,7 +81,7 @@ export class ClientesService {
       dto.sectorId ?? 0,
       dto.correo ?? '',
       clienteActual.usuarioId, // No permitir actualizar usuarioId
-      dto.edad,
+      dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : clienteActual.fechaNacimiento,
     );
     return this.clienteRepository.update(cliente);
   }

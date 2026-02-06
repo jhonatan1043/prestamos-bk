@@ -54,11 +54,13 @@ export class CreateClienteDto {
   telefono: string;
 
   @ApiProperty({
-    description: 'Edad del cliente',
+    description: 'Fecha de nacimiento del cliente',
     required: false,
-    example: 30,
+    example: '1990-01-01',
+    type: String,
+    format: 'date',
   })
   @IsOptional()
-  @IsInt()
-  edad?: number;
+  @IsString()
+  fechaNacimiento?: string;
 }

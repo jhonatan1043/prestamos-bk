@@ -31,7 +31,7 @@ export class Cliente {
   telefono: string;
 
   @ApiProperty({ required: false })
-  edad?: number;
+  fechaNacimiento?: Date;
 
   @ApiProperty()
   usuarioId: number;
@@ -47,7 +47,7 @@ export class Cliente {
     sectorId: number,
     correo: string,
     usuarioId: number,
-    edad?: number,
+    fechaNacimiento?: Date,
     active: boolean = true,
   ) {
     this.id = id;
@@ -60,7 +60,7 @@ export class Cliente {
     this.sectorId = sectorId;
     this.correo = correo;
     this.usuarioId = usuarioId;
-    this.edad = edad;
+    this.fechaNacimiento = fechaNacimiento;
     this.active = active;
   }
 
