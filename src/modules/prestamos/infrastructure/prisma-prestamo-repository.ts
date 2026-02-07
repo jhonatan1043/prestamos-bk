@@ -8,6 +8,33 @@ import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
 @Injectable()
 export class PrismaPrestamoRepository implements IPrestamoRepository {
 
+  async findByEstados(estadoIds: number[]): Promise<Prestamo[]> {
+    console.log('[REPO] findByEstados estadoIds:', estadoIds);
+    const found = await this.prisma.prestamo.findMany({
+      where: { estadoId: { in: estadoIds } },
+    });
+    console.log('[REPO] findByEstados found:', found);
+    return found.map(this.toDomain);
+  }
+
+  async findByEstadosYCobrador(estadoIds: number[], cobradorId: number): Promise<Prestamo[]> {
+    console.log('[REPO] findByEstadosYCobrador estadoIds:', estadoIds, 'cobradorId:', cobradorId);
+    const rutas = await this.prisma.ruta.findMany({
+      where: { cobradorId },
+      select: { id: true },
+    });
+    console.log('[REPO] findByEstadosYCobrador rutas:', rutas);
+    const sectorIds = rutas.map(r => r.id);
+    const found = await this.prisma.prestamo.findMany({
+      where: {
+        estadoId: { in: estadoIds },
+        cliente: { sectorId: { in: sectorIds } },
+      },
+    });
+    console.log('[REPO] findByEstadosYCobrador found:', found);
+    return found.map(this.toDomain);
+  }
+
     async findByCobrador(cobradorId: number): Promise<Prestamo[]> {
       // Buscar rutas donde cobradorId coincide
       const rutas = await this.prisma.ruta.findMany({
