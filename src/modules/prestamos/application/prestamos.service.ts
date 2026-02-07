@@ -7,6 +7,19 @@ import type { IEstadoRepository } from '../../estados/domain/repositories/estado
 
 @Injectable()
 export class PrestamosService {
+  async findPendientes(userId: number, isAdmin: boolean) {
+    const estadoIds = [1, 4];
+    console.log('[SERVICE] findPendientes userId:', userId, 'isAdmin:', isAdmin);
+    if (isAdmin) {
+      const prestamos = await this.prestamoRepository.findByEstados(estadoIds);
+      console.log('[SERVICE] findPendientes admin prestamos:', prestamos);
+      return prestamos;
+    } else {
+      const prestamos = await this.prestamoRepository.findByEstadosYCobrador(estadoIds, userId);
+      console.log('[SERVICE] findPendientes cobrador prestamos:', prestamos);
+      return prestamos;
+    }
+  }
     async findByCobrador(cobradorId: number) {
       return this.prestamoRepository.findByCobrador(cobradorId);
     }

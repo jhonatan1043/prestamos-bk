@@ -14,6 +14,27 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 // @UseGuards(JwtAuthGuard) // 🔒 Solo en métodos específicos
 export class PrestamosController {
   @UseGuards(JwtAuthGuard)
+  @Get('pendientes')
+  @ApiOperation({ summary: 'Listar préstamos pendientes (ACTIVO o MORA) por cobrador o todos si es admin' })
+  @ApiResponse({ status: 200, description: 'Listado de préstamos pendientes', type: [Prestamo] })
+    async getPendientes(@Req() req) {
+      const user = req.user;
+      let isAdmin = false;
+      if (user.roles) {
+        if (Array.isArray(user.roles)) {
+          isAdmin = user.roles.map(r => r.toString().toLowerCase()).includes('admin');
+        } else {
+          isAdmin = user.roles.toString().toLowerCase().includes('admin');
+        }
+      } else if (user.role) {
+        isAdmin = user.role.toString().toLowerCase().includes('admin');
+      }
+      console.log('[ENDPOINT] getPendientes user:', user, 'isAdmin:', isAdmin);
+      const result = await this.prestamosService.findPendientes(user.id, isAdmin);
+      console.log('[ENDPOINT] getPendientes result:', result);
+      return result;
+    }
+  @UseGuards(JwtAuthGuard)
   @Get('filtrar/cobrador/:cobradorId')
   @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta) - endpoint aparte' })
   @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
