@@ -12,9 +12,10 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
     console.log('[REPO] findByEstados estadoIds:', estadoIds);
     const found = await this.prisma.prestamo.findMany({
       where: { estadoId: { in: estadoIds } },
+      include: { cliente: true },
     });
     console.log('[REPO] findByEstados found:', found);
-    return found.map(this.toDomain);
+    return found.map(item => this.toDomainWithCliente(item));
   }
 
   async findByEstadosYCobrador(estadoIds: number[], cobradorId: number): Promise<Prestamo[]> {
@@ -30,9 +31,10 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
         estadoId: { in: estadoIds },
         cliente: { sectorId: { in: sectorIds } },
       },
+      include: { cliente: true },
     });
     console.log('[REPO] findByEstadosYCobrador found:', found);
-    return found.map(this.toDomain);
+    return found.map(item => this.toDomainWithCliente(item));
   }
 
     async findByCobrador(cobradorId: number): Promise<Prestamo[]> {
@@ -48,8 +50,9 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
             sectorId: { in: sectorIds },
           },
         },
+        include: { cliente: true },
       });
-      return found.map(this.toDomain);
+      return found.map(item => this.toDomainWithCliente(item));
     }
   constructor(private readonly prisma: PrismaService) {}
 
@@ -72,13 +75,13 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
   }
 
   async findAll(): Promise<Prestamo[]> {
-    const found = await this.prisma.prestamo.findMany();
-    return found.map(this.toDomain);
+    const found = await this.prisma.prestamo.findMany({ include: { cliente: true } });
+    return found.map(item => this.toDomainWithCliente(item));
   }
 
   async findById(id: number): Promise<Prestamo | null> {
-    const found = await this.prisma.prestamo.findUnique({ where: { id } });
-    return found ? this.toDomain(found) : null;
+    const found = await this.prisma.prestamo.findUnique({ where: { id }, include: { cliente: true } });
+    return found ? this.toDomainWithCliente(found) : null;
   }
 
   async update(id: number, data: import('../application/dto/update-prestamo.dto').UpdatePrestamoDto): Promise<Prestamo> {
@@ -101,11 +104,13 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
           identificacion,
         },
       },
+      include: { cliente: true },
     });
-    return found.map(this.toDomain);
+    return found.map(item => this.toDomainWithCliente(item));
   }
 
   private toDomain(prisma: PrismaPrestamo): Prestamo {
+    // Solo para compatibilidad, no incluye cliente
     return {
       id: prisma.id,
       codigo: prisma.codigo,
@@ -120,6 +125,30 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
       updatedAt: prisma.updatedAt,
       tipoPrestamo: prisma.tipoPrestamo as 'FIJO' | 'SOBRE_SALDO',
       estadoId: prisma.estadoId,
+    };
+  }
+
+  private toDomainWithCliente(prisma: any): Prestamo {
+    // prisma.cliente puede ser undefined si no se incluyó
+    const base = this.toDomain(prisma);
+    return {
+      ...base,
+      cliente: prisma.cliente
+        ? new (require('../../clientes/domain/entities/cliente.entity').Cliente)(
+            prisma.cliente.id,
+            prisma.cliente.tipoIdentificacion,
+            prisma.cliente.identificacion,
+            prisma.cliente.nombres,
+            prisma.cliente.apellidos,
+            prisma.cliente.direccion,
+            prisma.cliente.telefono,
+            prisma.cliente.sectorId,
+            prisma.cliente.correo,
+            prisma.cliente.usuarioId,
+            prisma.cliente.fechaNacimiento,
+            prisma.cliente.active,
+          )
+        : undefined,
     };
   }
 }
