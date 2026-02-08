@@ -7,6 +7,8 @@ export class Estado {
   nombre: string;
 }
 
+import { Cliente } from '../../../clientes/domain/entities/cliente.entity';
+
 export class Prestamo {
   @ApiProperty()
   id: number;
@@ -46,4 +48,7 @@ export class Prestamo {
 
   @ApiProperty({ example: 1, required: false })
   estadoId?: number;
+
+  @ApiProperty({ type: () => Cliente, required: false })
+  cliente?: Cliente;
 }
