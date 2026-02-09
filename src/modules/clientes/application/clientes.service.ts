@@ -38,8 +38,19 @@ export class ClientesService {
     return clientesDisponibles.map(c => {
       const ruta = rutasMap.get(c.sectorId);
       return {
-        ...c,
-        ruta: ruta && typeof ruta.cobradorId !== 'undefined' ? { cobradorId: ruta.cobradorId } : null
+        id: c.id,
+        usuarioId: c.usuarioId ?? 0,
+        tipoIdentificacion: c.tipoIdentificacion,
+        identificacion: c.identificacion,
+        nombres: c.nombres,
+        apellidos: c.apellidos,
+        direccion: c.direccion,
+        telefono: c.telefono,
+        fechaNacimiento: c.fechaNacimiento,
+        sectorId: c.sectorId,
+        cobradorId: ruta && typeof ruta.cobradorId !== 'undefined' ? ruta.cobradorId : null,
+        correo: c.correo,
+        sector: ruta && typeof ruta.sector !== 'undefined' ? ruta.sector : null
       };
     });
   }
