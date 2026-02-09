@@ -22,11 +22,26 @@ export class ClientesService {
     const clientes = await this.clienteRepository.findAll();
     // 2. Obtener todos los préstamos activos
     const estadoActivo = await this.prisma.estado.findUnique({ where: { nombre: 'ACTIVO' } });
-    if (!estadoActivo) return clientes; // Si no hay estado ACTIVO, retorna todos
+    if (!estadoActivo) return clientes;
     const prestamosActivos = await this.prisma.prestamo.findMany({ where: { estadoId: estadoActivo.id } });
     const clientesConPrestamoActivo = new Set(prestamosActivos.map(p => p.clienteId));
     // 3. Filtrar clientes que NO tienen préstamo activo
-    return clientes.filter(c => c.id !== null && !clientesConPrestamoActivo.has(c.id!));
+    const clientesDisponibles = clientes.filter(c => c.id !== null && !clientesConPrestamoActivo.has(c.id!));
+
+    // 4. Traer info de la ruta asociada (sectorId = rutaId)
+    const rutaIds = clientesDisponibles.map(c => c.sectorId);
+    const rutas = await this.prisma.ruta.findMany({ where: { id: { in: rutaIds } } });
+    // Mapear rutas por id
+    const rutasMap = new Map(rutas.map(r => [r.id, r]));
+
+    // 5. Agregar solo cobradorId de la ruta a cada cliente
+    return clientesDisponibles.map(c => {
+      const ruta = rutasMap.get(c.sectorId);
+      return {
+        ...c,
+        ruta: ruta && typeof ruta.cobradorId !== 'undefined' ? { cobradorId: ruta.cobradorId } : null
+      };
+    });
   }
 
   async create(dto: CreateClienteDto) {
