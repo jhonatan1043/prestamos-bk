@@ -8,6 +8,7 @@ import { PrestamosModule } from './modules/prestamos/prestamos.module';
 import { PagosModule } from './modules/pagos/pagos.module';
 import { RutaModule } from './modules/ruta/ruta.module';
 import { GastosModule } from './modules/gastos/gastos.module';
+import { EmpresaModule } from './modules/empresa/empresa.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { GastosModule } from './modules/gastos/gastos.module';
     PagosModule,
     RutaModule,
     GeolocalizacionModule,
-    GastosModule
+    GastosModule,
+    EmpresaModule
   ],
   controllers: [],
   providers: [],

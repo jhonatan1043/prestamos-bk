@@ -1,3 +1,14 @@
+model Empresa {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  ruc         String   @unique
+  direccion   String
+  telefono    String
+  correo      String
+  logoUrl     String?  // URL o path del logo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
