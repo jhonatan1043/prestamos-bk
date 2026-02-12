@@ -9,6 +9,9 @@ export class EmpresaService {
   async create(dto: Partial<Empresa>): Promise<Empresa> {
     const empresa = new Empresa();
     Object.assign(empresa, dto);
+    // Defaults para campos obligatorios si no vienen en dto
+    if (!empresa.divisa) empresa.divisa = 'USD';
+    if (!empresa.codigoPais) empresa.codigoPais = 'EC';
     return this.empresaRepository.create(empresa);
   }
 
@@ -25,6 +28,8 @@ export class EmpresaService {
   async update(id: number, dto: Partial<Empresa>): Promise<Empresa> {
     const empresa = await this.findById(id);
     Object.assign(empresa, dto);
+    if (!empresa.divisa) empresa.divisa = 'USD';
+    if (!empresa.codigoPais) empresa.codigoPais = 'EC';
     return this.empresaRepository.update(empresa);
   }
 

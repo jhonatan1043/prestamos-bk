@@ -16,6 +16,8 @@ export class PrismaEmpresaRepository implements IEmpresaRepository {
         telefono: empresa.telefono,
         correo: empresa.correo,
         logoUrl: empresa.logoUrl,
+        divisa: empresa.divisa,
+        codigoPais: empresa.codigoPais,
       },
     });
     return this.toDomain(created);
@@ -41,6 +43,8 @@ export class PrismaEmpresaRepository implements IEmpresaRepository {
         telefono: empresa.telefono,
         correo: empresa.correo,
         logoUrl: empresa.logoUrl,
+        divisa: empresa.divisa,
+        codigoPais: empresa.codigoPais,
       },
     });
     return this.toDomain(updated);
@@ -59,6 +63,8 @@ export class PrismaEmpresaRepository implements IEmpresaRepository {
       telefono: e.telefono,
       correo: e.correo,
       logoUrl: e.logoUrl,
+      divisa: e.divisa,
+      codigoPais: e.codigoPais,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
     };

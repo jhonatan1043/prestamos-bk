@@ -17,6 +17,10 @@ export class EmpresaController {
   @ApiOperation({ summary: 'Crear empresa' })
   @ApiResponse({ status: 201, type: Empresa })
   async create(@Body() dto: Partial<Empresa>) {
+    // Validar campos obligatorios
+    if (!dto.nombre || !dto.ruc || !dto.direccion || !dto.telefono || !dto.correo || !dto.divisa || !dto.codigoPais) {
+      throw new Error('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
+    }
     return this.empresaService.create(dto);
   }
 
@@ -38,6 +42,10 @@ export class EmpresaController {
   @ApiOperation({ summary: 'Actualizar empresa' })
   @ApiResponse({ status: 200, type: Empresa })
   async update(@Param('id') id: string, @Body() dto: Partial<Empresa>) {
+    // Validar campos obligatorios
+    if (!dto.nombre || !dto.ruc || !dto.direccion || !dto.telefono || !dto.correo || !dto.divisa || !dto.codigoPais) {
+      throw new Error('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
+    }
     return this.empresaService.update(Number(id), dto);
   }
 

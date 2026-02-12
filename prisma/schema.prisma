@@ -6,6 +6,8 @@ model Empresa {
   telefono    String
   correo      String
   logoUrl     String?  // URL o path del logo
+  divisa      String   // Ej: USD, EUR, etc.
+  codigoPais  String   // Ej: EC, ES, US (ISO 3166-1 alpha-2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

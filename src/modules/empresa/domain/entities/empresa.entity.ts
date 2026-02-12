@@ -23,6 +23,12 @@ export class Empresa {
   logoUrl?: string;
 
   @ApiProperty()
+  divisa: string;
+
+  @ApiProperty()
+  codigoPais: string;
+
+  @ApiProperty()
   createdAt: Date;
 
   @ApiProperty()
