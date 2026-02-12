@@ -6,6 +6,12 @@ import type { IEmpresaRepository } from '../domain/repositories/empresa.reposito
 export class EmpresaService {
   constructor(@Inject('IEmpresaRepository') private readonly empresaRepository: IEmpresaRepository) {}
 
+  async updateLogoBase64(id: number, base64: string): Promise<Empresa> {
+    const empresa = await this.findById(id);
+    empresa.logoUrl = base64;
+    return this.empresaRepository.update(empresa);
+  }
+
   async create(dto: Partial<Empresa>): Promise<Empresa> {
     const empresa = new Empresa();
     Object.assign(empresa, dto);

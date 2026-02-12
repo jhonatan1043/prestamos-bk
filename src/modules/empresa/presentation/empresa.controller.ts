@@ -56,14 +56,11 @@ export class EmpresaController {
   }
 
   @Post(':id/logo')
-  @ApiOperation({ summary: 'Subir logo de empresa' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadLogo(@Param('id') id: string, @UploadedFile() file: any) {
-    // Aquí deberías guardar el archivo y actualizar el campo logoUrl
-    // Ejemplo: guardar en /uploads y actualizar empresa.logoUrl
-    // Implementación real depende de tu infraestructura
-    return { message: 'Logo subido (implementación pendiente)', fileName: file?.originalname };
+  @ApiOperation({ summary: 'Subir logo de empresa en base64' })
+  @ApiBody({ schema: { type: 'object', properties: { base64: { type: 'string', description: 'Logo en base64' } } } })
+  async uploadLogoBase64(@Param('id') id: string, @Body('base64') base64: string) {
+    if (!base64) throw new Error('El campo base64 es requerido');
+    const empresa = await this.empresaService.updateLogoBase64(Number(id), base64);
+    return { message: 'Logo actualizado', empresa };
   }
 }
