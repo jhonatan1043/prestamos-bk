@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { IClienteRepository } from '../domain/repositories/cliente.repository';
 import { Cliente } from '../domain/entities/cliente.entity';
 
 @Injectable()
 export class PrismaClienteRepository implements IClienteRepository {
-    async findByCobrador(cobradorId: number): Promise<Cliente[]> {
+  private readonly logger = new Logger(PrismaClienteRepository.name);
+
+
+  async findByCobrador(cobradorId: number): Promise<Cliente[]> {
       // Busca clientes por el cobrador asignado a la ruta
       // Buscar rutas donde cobradorId coincide
       const rutas = await this.prisma.ruta.findMany({
@@ -90,8 +93,10 @@ export class PrismaClienteRepository implements IClienteRepository {
 
   async findById(id: number): Promise<Cliente | null> {
     const c = await this.prisma.cliente.findUnique({ where: { id } });
-    if (!c) return null;
-    return new Cliente(
+    if (!c) {
+      return null;
+    }
+    const cliente = new Cliente(
       c.id,
       c.tipoIdentificacion,
       c.identificacion,
@@ -104,6 +109,8 @@ export class PrismaClienteRepository implements IClienteRepository {
       c.usuarioId ?? 0,
       c.fechaNacimiento ?? undefined
     );
+    this.logger.log(`[findById] Cliente instanciado: ${JSON.stringify(cliente)}`);
+    return cliente;
   }
 
   async update(cliente: Cliente): Promise<Cliente> {
