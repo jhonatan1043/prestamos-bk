@@ -1,7 +1,6 @@
 -- Insertar estados por defecto para prestamos y pagos
-INSERT INTO "Estado" ("nombre") VALUES
-  ('ACTIVO'),
-  ('CANCELADO'),
-  ('FINALIZADO'),
-  ('MORA')
+INSERT INTO tst."Estado" ("nombre") values('ACTIVO');
+INSERT INTO tst."Estado" ("nombre") values('CANCELADO');
+INSERT INTO tst."Estado" ("nombre") values('FINALIZADO');
+INSERT INTO tst."Estado" ("nombre") values('MORA');
 ON CONFLICT ("nombre") DO NOTHING;
