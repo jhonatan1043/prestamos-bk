@@ -7,15 +7,15 @@ import { Cliente } from '../domain/entities/cliente.entity';
 
 @Injectable()
 export class ClientesService {
-    async findByCobrador(cobradorId: number) {
-      // Busca clientes asignados al cobrador
-      return this.clienteRepository.findByCobrador(cobradorId);
-    }
+  async findByCobrador(cobradorId: number) {
+    // Busca clientes asignados al cobrador
+    return this.clienteRepository.findByCobrador(cobradorId);
+  }
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: clienteRepository.IClienteRepository,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async findDisponibles() {
     // 1. Obtener todos los clientes activos
@@ -138,10 +138,10 @@ export class ClientesService {
     return this.clienteRepository.remove(id);
   }
 
-    async buscarPorIdentificacion(identificacion: string) {
-      const clientes = await this.clienteRepository.findAll();
-      const cliente = clientes.find(c => c.identificacion === identificacion);
-      if (!cliente) throw new NotFoundException('Cliente no encontrado o no está activo');
-      return cliente;
-    }
+  async buscarPorIdentificacion(identificacion: string) {
+    const clientes = await this.clienteRepository.findAll();
+    const cliente = clientes.find(c => c.identificacion === identificacion);
+    if (!cliente) throw new NotFoundException('Cliente no encontrado o no está activo');
+    return cliente;
+  }
 }

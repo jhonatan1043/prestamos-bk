@@ -56,19 +56,24 @@ export class PrismaPrestamoRepository implements IPrestamoRepository {
     }
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Prestamo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Prestamo> {
+  async create(data: Omit<Prestamo, 'id' | 'createdAt' | 'updatedAt' | 'codigo'>): Promise<Prestamo> {
+    // Obtener el último código existente
+    const last = await this.prisma.prestamo.findFirst({
+      orderBy: { id: 'desc' },
+      select: { codigo: true },
+    });
+    let nextNumber = 1;
+    if (last && last.codigo) {
+      const match = last.codigo.match(/PRE-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    const nextCodigo = `PRE-${nextNumber.toString().padStart(13, '0')}`;
     const created = await this.prisma.prestamo.create({
       data: {
-        codigo: data.codigo,
-        monto: data.monto,
-        tasa: data.tasa,
-        plazoDias: data.plazoDias,
-        tipoPlazo: data.tipoPlazo,
-        fechaInicio: typeof data.fechaInicio === 'string' ? new Date(data.fechaInicio) : data.fechaInicio,
-        tipoPrestamo: data.tipoPrestamo,
-        estadoId: data.estadoId!,
-        clienteId: data.clienteId,
-        usuarioId: data.usuarioId,
+        ...data,
+        codigo: nextCodigo,
       } as any,
     });
     return this.toDomain(created);

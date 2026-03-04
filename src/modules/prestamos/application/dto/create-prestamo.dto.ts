@@ -2,9 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsDateString, IsInt } from 'class-validator';
 
 export class CreatePrestamoDto {
-    @ApiProperty({ example: 'PRE-001' })
-    @IsString()
-    codigo: string;
+    // El código se genera automáticamente, no se envía desde el cliente
 
     @ApiProperty({ example: 5000.00 })
     @IsNumber()

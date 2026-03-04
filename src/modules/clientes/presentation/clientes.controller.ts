@@ -12,33 +12,35 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
 @Controller('clientes')
 export class ClientesController {
-      @Get('disponibles')
-      @UseGuards(JwtAuthGuard)
-      @ApiOperation({ summary: 'Listar clientes sin préstamo activo' })
-      @ApiResponse({ status: 200, description: 'Listado de clientes sin préstamo activo', type: [Cliente] })
-      async findDisponibles() {
-        return await this.clientesService.findDisponibles();
-      }
-    @Get('cobrador/:cobradorId')
-    @ApiOperation({ summary: 'Listar clientes por cobradorId' })
-    @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-    @ApiResponse({ status: 200, description: 'Listado de clientes filtrado', type: [Cliente] })
-    async findByCobrador(@Param('cobradorId') cobradorId: string) {
-      return await this.clientesService.findByCobrador(Number(cobradorId));
-    }
-  constructor(private readonly clientesService: ClientesService) {}
 
-    @Get(':identificacion')
-    @ApiOperation({ summary: 'Buscar cliente por número de identificación' })
-    @ApiParam({ name: 'identificacion', type: String, description: 'Número de identificación del cliente' })
-    @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
-    @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
-    async buscarPorIdentificacion(@Param('identificacion') identificacion: string) {
-      return await this.clientesService.buscarPorIdentificacion(identificacion);
-    }
+  @Get('disponibles')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Listar clientes sin préstamo activo' })
+  @ApiResponse({ status: 200, description: 'Listado de clientes sin préstamo activo', type: [Cliente] })
+  async findDisponibles() {
+    return await this.clientesService.findDisponibles();
+  }
+
+  @Get('cobrador/:cobradorId')
+  @ApiOperation({ summary: 'Listar clientes por cobradorId' })
+  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
+  @ApiResponse({ status: 200, description: 'Listado de clientes filtrado', type: [Cliente] })
+  async findByCobrador(@Param('cobradorId') cobradorId: string) {
+    return await this.clientesService.findByCobrador(Number(cobradorId));
+  }
+  constructor(private readonly clientesService: ClientesService) { }
+
+  @Get(':identificacion')
+  @ApiOperation({ summary: 'Buscar cliente por número de identificación' })
+  @ApiParam({ name: 'identificacion', type: String, description: 'Número de identificación del cliente' })
+  @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
+  @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
+  async buscarPorIdentificacion(@Param('identificacion') identificacion: string) {
+    return await this.clientesService.buscarPorIdentificacion(identificacion);
+  }
 
   @Post()
-    @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Crear un nuevo cliente' })
   @ApiResponse({ status: 201, description: 'Cliente creado exitosamente', type: Cliente })
   @ApiBody({ type: CreateClienteDto })
@@ -53,12 +55,13 @@ export class ClientesController {
     return await this.clientesService.findAll();
   }
 
-  @Get(':id')
+  @Get('id/:id')
   @ApiOperation({ summary: 'Obtener un cliente por ID' })
   @ApiParam({ name: 'id', type: Number, description: 'ID del cliente' })
   @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
   @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
   async findOne(@Param('id') id: string) {
+    console.log('Buscando cliente con ID:', id);
     return await this.clientesService.findOne(+id);
   }
 

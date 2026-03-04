@@ -59,12 +59,9 @@ export class PrestamosService {
       });
       return prestamo;
     }
-    // Validar código único
-    const prestamos = await this.prestamoRepository.findAll();
-    if (prestamos.some(p => p.codigo === data.codigo)) {
-      throw new (await import('@nestjs/common')).ConflictException('Ya existe un préstamo con ese código');
-    }
+    // El código se genera automáticamente en el repositorio
     // Validar que el cliente no tenga un préstamo activo
+    const prestamos = await this.prestamoRepository.findAll();
     const tienePrestamoActivo = await Promise.all(
       prestamos
         .filter(p => p.clienteId === data.clienteId && p.estadoId)
