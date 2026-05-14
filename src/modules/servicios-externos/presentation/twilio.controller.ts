@@ -1,12 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { TwilioService } from '../application/twilio.service';
 import { HacerLlamadaDto } from './dto/hacer-llamada.dto';
 
 @ApiTags('servicios-externos/twilio')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('servicios-externos/twilio')
 export class TwilioController {
   constructor(private readonly twilioService: TwilioService) {}
