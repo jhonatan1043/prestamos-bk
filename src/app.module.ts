@@ -9,19 +9,21 @@ import { PagosModule } from './modules/pagos/pagos.module';
 import { RutaModule } from './modules/ruta/ruta.module';
 import { GastosModule } from './modules/gastos/gastos.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
+import { ServiciosExternosModule } from './modules/servicios-externos/servicios-externos.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    ClientesModule, 
-    AuthModule, 
-    UserModule, 
+    ClientesModule,
+    AuthModule,
+    UserModule,
     PrestamosModule,
     PagosModule,
     RutaModule,
     GeolocalizacionModule,
     GastosModule,
-    EmpresaModule
+    EmpresaModule,
+    ServiciosExternosModule,
   ],
   controllers: [],
   providers: [],
