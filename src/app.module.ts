@@ -15,6 +15,7 @@ import { EmpresaModule } from './modules/empresa/empresa.module';
 import { ServiciosExternosModule } from './modules/servicios-externos/servicios-externos.module';
 import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
     SuscripcionesModule,
     TenantsModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide:  APP_INTERCEPTOR,
