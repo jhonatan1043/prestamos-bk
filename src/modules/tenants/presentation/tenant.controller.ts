@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/infrastructure/jwt-auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 import { TenantService } from '../application/tenant.service';
 import { CreateTenantDto } from '../application/dto/create-tenant.dto';
 import { UpdateTenantDto } from '../application/dto/update-tenant.dto';
@@ -35,6 +36,7 @@ export class TenantController {
   /**
    * GET /tenants
    * Lista todos los tenants con su plan asignado.
+   * PROTEGIDO — solo admins autenticados.
    */
   @Get()
   findAll() {
@@ -48,6 +50,17 @@ export class TenantController {
   @Get('resumen-economico')
   resumenEconomico() {
     return this.tenantService.resumenEconomico();
+  }
+
+  /**
+   * GET /tenants/verificar/:schemaName
+   * Endpoint PÚBLICO para que el frontend verifique si una empresa existe
+   * antes de mostrar el formulario de login. Devuelve solo nombre e id.
+   */
+  @Public()
+  @Get('verificar/:schemaName')
+  verificar(@Param('schemaName') schemaName: string) {
+    return this.tenantService.verificarEmpresa(schemaName);
   }
 
   /**

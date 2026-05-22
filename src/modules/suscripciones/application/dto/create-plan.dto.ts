@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreatePlanDto {
   @ApiProperty({ example: 'Gratuito' })
@@ -9,6 +9,16 @@ export class CreatePlanDto {
   @ApiProperty({ example: 'Plan de inicio sin costo', required: false })
   @IsOptional() @IsString()
   descripcion?: string;
+
+  @ApiProperty({
+    example: ['5 usuarios', '100 clientes', 'Soporte por email'],
+    description: 'Lista de características visibles en la UI',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  caracteristicas?: string[];
 
   @ApiProperty({ example: 2, description: 'Máximo de usuarios. -1 = ilimitado' })
   @IsInt() @Min(-1)

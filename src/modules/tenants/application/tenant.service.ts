@@ -54,22 +54,30 @@ export class TenantService {
       notas: dto.notas ?? null,
     });
 
-    // 2. Crear el esquema PostgreSQL y correr migraciones
-    //    Se hace después de insertar para que, si falla la migración,
-    //    el tenant pueda reintentarse o el esquema ya esté listo.
+    // 2. Crear esquema, migrar y crear usuario admin
+    let adminUser: { nombre: string; email: string; password: string; role: string };
     try {
       await this.provisioner.crearEsquema(schemaName);
       await this.provisioner.ejecutarMigraciones(schemaName);
+      adminUser = await this.provisioner.crearUsuarioAdmin(schemaName, dto.nombre);
     } catch (error: any) {
       this.logger.error(
         `Error al provisionar esquema para tenant #${tenant.id}: ${error.message}`,
       );
-      // Marcar como suspendido si el esquema falló, para que el admin pueda reintentar
       await this.repo.update(tenant.id, { estado: 'SUSPENDIDO', notas: `Error de provisión: ${error.message}` });
       throw error;
     }
 
-    return tenant;
+    return {
+      tenant,
+      adminUser: {
+        nombre: adminUser.nombre,
+        email: adminUser.email,
+        password: adminUser.password, // solo se devuelve esta única vez
+        role: adminUser.role,
+        nota: 'Guarda esta contraseña, no se volverá a mostrar.',
+      },
+    };
   }
 
   async findAll() {
@@ -80,6 +88,26 @@ export class TenantService {
     const tenant = await this.repo.findById(id);
     if (!tenant) throw new NotFoundException(`Tenant #${id} no encontrado`);
     return tenant;
+  }
+
+  /**
+   * Verifica si una empresa existe por su schemaName.
+   * Endpoint público — solo devuelve datos mínimos (sin info sensible).
+   */
+  async verificarEmpresa(schemaName: string) {
+    const tenant = await this.repo.findBySchema(schemaName);
+    if (!tenant) {
+      throw new NotFoundException(`No se encontró ninguna empresa con el identificador "${schemaName}"`);
+    }
+    if (tenant.estado !== 'ACTIVO') {
+      throw new BadRequestException(`La empresa "${tenant.nombre}" no está activa`);
+    }
+    // Solo exponer lo que el frontend necesita para mostrar la pantalla de login
+    return {
+      id: tenant.id,
+      nombre: tenant.nombre,
+      schemaName: tenant.schemaName,
+    };
   }
 
   async update(id: number, dto: UpdateTenantDto) {

@@ -1,5 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { execSync } from 'child_process';
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
 @Injectable()
@@ -77,6 +79,49 @@ export class SchemaProvisionerService {
         `Falló la migración del esquema "${schemaName}": ${stderr || error.message}`,
       );
     }
+  }
+
+  /**
+   * Crea el usuario admin por defecto en el esquema del tenant.
+   * Usa un PrismaClient dinámico apuntando al esquema recién migrado.
+   * Retorna el usuario creado con la contraseña en texto plano (solo esta vez).
+   */
+  async crearUsuarioAdmin(
+    schemaName: string,
+    nombreEmpresa: string,
+  ): Promise<{ nombre: string; email: string; password: string; role: string }> {
+    const baseUrl = process.env.DATABASE_URL ?? '';
+    const tenantUrl = baseUrl.replace(/([?&])schema=[^&]*/, `$1schema=${schemaName}`);
+
+    const plainPassword = this.generarPassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const email = `admin@iatechsabana.online`;
+
+    const tenantPrisma = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
+
+    try {
+      await tenantPrisma.user.create({
+        data: {
+          nombre: nombreEmpresa,
+          email,
+          password: hashedPassword,
+          role: 'admin',
+          active: true,
+        },
+      });
+      this.logger.log(`Usuario admin creado en esquema "${schemaName}": ${email}`);
+    } finally {
+      await tenantPrisma.$disconnect();
+    }
+
+    return { nombre: nombreEmpresa, email, password: plainPassword, role: 'admin' };
+  }
+
+  /** Genera una contraseña aleatoria segura de 12 caracteres. */
+  private generarPassword(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
   /**

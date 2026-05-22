@@ -189,6 +189,7 @@ model Plan {
   id                     Int      @id @default(autoincrement())
   nombre                 String   @unique
   descripcion            String?
+  caracteristicas        Json     @default("[]")  // array de strings para mostrar en UI
   maxUsuarios            Int      // -1 = ilimitado
   maxClientes            Int      // -1 = ilimitado
   maxPrestamosPorCliente Int      // -1 = ilimitado

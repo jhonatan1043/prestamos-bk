@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
+import { Public } from 'src/common/decorators/public.decorator';
 import { PlanService } from '../application/plan.service';
 import { CreatePlanDto } from '../application/dto/create-plan.dto';
 import { UpdatePlanDto } from '../application/dto/update-plan.dto';
@@ -27,8 +28,9 @@ export class PlanController {
     return this.planService.findAll();
   }
 
+  @Public()
   @Get('activos')
-  @ApiOperation({ summary: 'Listar planes activos' })
+  @ApiOperation({ summary: 'Listar planes activos (público)' })
   @ApiResponse({ status: 200, type: [Plan] })
   findActivos() {
     return this.planService.findActivos();
