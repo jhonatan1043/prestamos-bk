@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IPrestamoRepository } from '../domain/repositories/prestamo.repository';
 import { Prestamo as PrismaPrestamo } from '@prisma/client';
 import { Prestamo } from '../domain/entities/prestamo.entity';
@@ -8,7 +8,7 @@ import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
 
 @Injectable()
 export class PrismaPrestamoRepository implements IPrestamoRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: TenantPrismaService) {}
 
   async create(data: Omit<Prestamo, 'id' | 'createdAt' | 'updatedAt' | 'codigo'>): Promise<Prestamo> {
     const last = await this.prisma.prestamo.findFirst({

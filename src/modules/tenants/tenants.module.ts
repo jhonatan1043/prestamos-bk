@@ -8,7 +8,7 @@ import { TenantController } from './presentation/tenant.controller';
 @Module({
   controllers: [TenantController],
   providers: [
-    PrismaService,
+    PrismaService,          // esquema principal para suscripciones y planes
     TenantService,
     SchemaProvisionerService,
     { provide: 'ITenantRepository', useClass: PrismaTenantRepository },

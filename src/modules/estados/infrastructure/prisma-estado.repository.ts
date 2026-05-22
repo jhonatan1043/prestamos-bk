@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { Estado } from '../domain/entities/estado.entity';
 import { IEstadoRepository } from '../domain/repositories/estado.repository';
 
@@ -8,7 +8,7 @@ export class PrismaEstadoRepository implements IEstadoRepository {
   async create(data: { nombre: string }): Promise<Estado> {
     return this.prisma.estado.create({ data });
   }
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: TenantPrismaService) {}
 
   async findById(id: number): Promise<Estado | null> {
     return this.prisma.estado.findUnique({ where: { id } });

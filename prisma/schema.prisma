@@ -206,14 +206,16 @@ model Plan {
 
 model Suscripcion {
   id          Int                @id @default(autoincrement())
+  tenantId    Int                // a qué tenant pertenece esta suscripción
   planId      Int
   fechaInicio DateTime
-  fechaFin    DateTime?
+  fechaFin    DateTime?          // null = no vence (plan gratis)
   estado      EstadoSuscripcion  @default(ACTIVA)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  plan Plan @relation(fields: [planId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId],   references: [id])
 
   @@map("Suscripcion")
 }
@@ -238,8 +240,9 @@ model Tenant {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  plan   Plan         @relation(fields: [planId], references: [id])
-  pagos  PagoTenant[]
+  plan          Plan          @relation(fields: [planId], references: [id])
+  pagos         PagoTenant[]
+  suscripciones Suscripcion[]
 
   @@map("Tenant")
 }

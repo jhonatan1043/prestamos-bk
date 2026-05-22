@@ -5,6 +5,7 @@ export type EstadoSuscripcion = 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
 
 export class Suscripcion {
   @ApiProperty() id: number;
+  @ApiProperty() tenantId: number;
   @ApiProperty() planId: number;
   @ApiProperty() fechaInicio: Date;
   @ApiProperty({ required: false }) fechaFin?: Date;

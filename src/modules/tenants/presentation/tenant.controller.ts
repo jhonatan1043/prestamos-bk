@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/infrastructure/jwt-auth.guard';
@@ -101,6 +102,32 @@ export class TenantController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.tenantService.remove(id);
+  }
+
+  // ─── Suscripciones ────────────────────────────────────────────────────────
+
+  /**
+   * POST /tenants/:id/plan
+   * Cambia o renueva el plan de un tenant.
+   * Body: { planId: number, meses?: number }
+   * meses = 0 o ausente para planes gratuitos (sin vencimiento)
+   */
+  @Post(':id/plan')
+  cambiarPlan(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('planId', ParseIntPipe) planId: number,
+    @Query('meses') meses?: string,
+  ) {
+    return this.tenantService.cambiarPlan(id, planId, meses ? parseInt(meses) : 1);
+  }
+
+  /**
+   * GET /tenants/:id/suscripciones
+   * Historial completo de suscripciones de un tenant.
+   */
+  @Get(':id/suscripciones')
+  historialSuscripciones(@Param('id', ParseIntPipe) id: number) {
+    return this.tenantService.historialSuscripciones(id);
   }
 
   // ─── Pagos del tenant ─────────────────────────────────────────────────────

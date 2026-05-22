@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IGastoRepository } from '../domain/repositories/gasto.repository';
 import { Gasto } from '../domain/entities/gasto.entity';
 
 @Injectable()
 export class PrismaGastoRepository implements IGastoRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: TenantPrismaService) {}
 
   async findAll(): Promise<Gasto[]> {
     const gastos = await this.prisma.gasto.findMany();
