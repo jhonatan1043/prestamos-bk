@@ -1,12 +1,12 @@
 import { RutaResumenDetalladoDto, ClienteDetalleDto, PrestamoDetalleDto } from '../application/dto/ruta-resumen-detallado.dto';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IRutaRepository } from '../domain/repositories/ruta.repository';
 import { Ruta } from '../domain/entities/ruta.entity';
 
 @Injectable()
 export class PrismaRutaRepository implements IRutaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: TenantPrismaService) {}
 
   async findAll(): Promise<Ruta[]> {
     const rutas = await this.prisma.ruta.findMany();

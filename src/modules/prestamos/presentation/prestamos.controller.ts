@@ -1,131 +1,97 @@
-import { UpdateEstadoPrestamoDto } from '../application/dto/update-estado-prestamo.dto';
-import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Req, Patch } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
-import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
-import { CreatePrestamoDto } from '../application/dto/create-prestamo.dto';
-import { PrestamosService } from '../application/prestamos.service';
-import { Prestamo } from '../domain/entities/prestamo.entity';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Put, Delete, Patch, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
+import { PrestamosService } from '../application/prestamos.service';
+import { CreatePrestamoDto } from '../application/dto/create-prestamo.dto';
+import { UpdatePrestamoDto } from '../application/dto/update-prestamo.dto';
+import { UpdateEstadoPrestamoDto } from '../application/dto/update-estado-prestamo.dto';
+import { Prestamo } from '../domain/entities/prestamo.entity';
 
 @ApiTags('prestamos')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('prestamos')
-@ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
-// @UseGuards(JwtAuthGuard) // 🔒 Solo en métodos específicos
 export class PrestamosController {
-  @UseGuards(JwtAuthGuard)
-  @Get('pendientes')
-  @ApiOperation({ summary: 'Listar préstamos pendientes (ACTIVO o MORA) por cobrador o todos si es admin' })
-  @ApiResponse({ status: 200, description: 'Listado de préstamos pendientes', type: [Prestamo] })
-    async getPendientes(@Req() req) {
-      const user = req.user;
-      let isAdmin = false;
-      if (user.roles) {
-        if (Array.isArray(user.roles)) {
-          isAdmin = user.roles.map(r => r.toString().toLowerCase()).includes('admin');
-        } else {
-          isAdmin = user.roles.toString().toLowerCase().includes('admin');
-        }
-      } else if (user.role) {
-        isAdmin = user.role.toString().toLowerCase().includes('admin');
-      }
-      console.log('[ENDPOINT] getPendientes user:', user, 'isAdmin:', isAdmin);
-      const result = await this.prestamosService.findPendientes(user.id, isAdmin);
-      console.log('[ENDPOINT] getPendientes result:', result);
-      return result;
-    }
-  @UseGuards(JwtAuthGuard)
-  @Get('filtrar/cobrador/:cobradorId')
-  @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta) - endpoint aparte' })
-  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-  @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
-  async filtrarPorCobrador(@Param('cobradorId') cobradorId: string) {
-    return this.prestamosService.findByCobrador(Number(cobradorId));
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('cobrador/:cobradorId')
-  @ApiOperation({ summary: 'Listar préstamos por cobradorId (sector/ruta)' })
-  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-  @ApiResponse({ status: 200, description: 'Listado de préstamos filtrado', type: [Prestamo] })
-  findByCobrador(@Param('cobradorId') cobradorId: string) {
-    return this.prestamosService.findByCobrador(Number(cobradorId));
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('cliente/:identificacion')
-  @ApiOperation({ summary: 'Listar préstamos por identificación de cliente' })
-  @ApiParam({ name: 'identificacion', type: String, description: 'Identificación del cliente' })
-  @ApiResponse({ status: 200, description: 'Listado de préstamos', type: [Prestamo] })
-  findByClienteIdentificacion(@Param('identificacion') identificacion: string) {
-    return this.prestamosService.findByClienteIdentificacion(identificacion);
-  }
-
   constructor(private readonly prestamosService: PrestamosService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: 'Crear préstamo' })
-  @ApiResponse({ status: 201, type: Prestamo })
   @ApiBody({ type: CreatePrestamoDto })
-  create(@Body() data: CreatePrestamoDto) {
-    // El DTO ya valida los datos
-    return this.prestamosService.create({ ...data});
+  @ApiResponse({ status: 201, type: Prestamo })
+  create(@Req() req, @Body() data: CreatePrestamoDto) {
+    return this.prestamosService.create(data, req.user?.id ?? 0);
   }
 
-
-  @UseGuards(JwtAuthGuard)
   @Get()
-  @ApiOperation({ summary: 'Listar préstamos' })
-  @ApiResponse({ status: 200, description: 'Listado de préstamos', type: [Prestamo] })
+  @ApiOperation({ summary: 'Listar todos los préstamos' })
+  @ApiResponse({ status: 200, type: [Prestamo] })
   findAll() {
     return this.prestamosService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Get('pendientes')
+  @ApiOperation({ summary: 'Préstamos pendientes — todos si admin, propios si cobrador' })
+  @ApiResponse({ status: 200, type: [Prestamo] })
+  getPendientes(@Req() req) {
+    const user  = req.user;
+    const roles: string[] = Array.isArray(user.roles)
+      ? user.roles.map((r: any) => r.toString().toLowerCase())
+      : [user.roles?.toString().toLowerCase() ?? user.role?.toString().toLowerCase() ?? ''];
+    const isAdmin = roles.includes('admin');
+    return this.prestamosService.findPendientes(user.id, isAdmin);
+  }
+
+  @Get('cobrador/:cobradorId')
+  @ApiOperation({ summary: 'Listar préstamos por cobrador' })
+  @ApiParam({ name: 'cobradorId', type: Number })
+  @ApiResponse({ status: 200, type: [Prestamo] })
+  findByCobrador(@Param('cobradorId') cobradorId: string) {
+    return this.prestamosService.findByCobrador(Number(cobradorId));
+  }
+
+  @Get('cliente/:identificacion')
+  @ApiOperation({ summary: 'Listar préstamos por identificación de cliente' })
+  @ApiParam({ name: 'identificacion', type: String })
+  @ApiResponse({ status: 200, type: [Prestamo] })
+  findByClienteIdentificacion(@Param('identificacion') identificacion: string) {
+    return this.prestamosService.findByClienteIdentificacion(identificacion);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener préstamo por ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
-  @ApiResponse({ status: 200, description: 'Préstamo encontrado', type: Prestamo })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: Prestamo })
   @ApiResponse({ status: 404, description: 'Préstamo no encontrado' })
   findById(@Param('id') id: string) {
     return this.prestamosService.findById(+id);
   }
 
-
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar préstamo' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
-  @ApiResponse({ status: 200, description: 'Préstamo actualizado', type: Prestamo })
-  @ApiResponse({ status: 404, description: 'Préstamo no encontrado' })
+  @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdatePrestamoDto })
-  update(@Param('id') id: string, @Body() data: UpdatePrestamoDto) {
-    return this.prestamosService.update(+id, data);
-  }
-
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar préstamo' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
-  @ApiResponse({ status: 204, description: 'Préstamo eliminado' })
+  @ApiResponse({ status: 200, type: Prestamo })
   @ApiResponse({ status: 404, description: 'Préstamo no encontrado' })
-  delete(@Param('id') id: string) {
-    return this.prestamosService.delete(+id);
+  update(@Req() req, @Param('id') id: string, @Body() data: UpdatePrestamoDto) {
+    return this.prestamosService.update(+id, data, req.user?.id ?? 0);
   }
 
-
-  @UseGuards(JwtAuthGuard)
   @Patch(':id/estado')
   @ApiOperation({ summary: 'Actualizar estado del préstamo' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del préstamo' })
+  @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateEstadoPrestamoDto })
-  @ApiResponse({ status: 200, description: 'Estado actualizado', type: Prestamo })
-  async actualizarEstado(
-    @Param('id') id: string,
-    @Body() dto: UpdateEstadoPrestamoDto
-  ) {
-    return this.prestamosService.actualizarEstado(+id, dto);
+  @ApiResponse({ status: 200, type: Prestamo })
+  @ApiResponse({ status: 404, description: 'Préstamo o estado no encontrado' })
+  actualizarEstado(@Req() req, @Param('id') id: string, @Body() dto: UpdateEstadoPrestamoDto) {
+    return this.prestamosService.actualizarEstado(+id, dto, req.user?.id ?? 0);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar préstamo' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Préstamo eliminado' })
+  @ApiResponse({ status: 404, description: 'Préstamo no encontrado' })
+  delete(@Req() req, @Param('id') id: string) {
+    return this.prestamosService.delete(+id, req.user?.id ?? 0);
   }
 }

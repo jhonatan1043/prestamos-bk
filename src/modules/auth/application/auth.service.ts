@@ -1,40 +1,67 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { AuthRepository } from '../domain/Repositories/auth.repository';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(AuthRepository)          // 👈 TOKEN = abstract class
-    private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, password: string) {
-    const user = await this.authRepository.findByUsername(username);
-    if (!user) throw new UnauthorizedException('Credenciales inválidas');
-    // Validar si el usuario está activo
-    if (user.active === false) {
-      throw new UnauthorizedException('Usuario inactivo');
-    }
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) throw new UnauthorizedException('Credenciales inválidas');
-    return user;
-  }
-
   async login(dto: LoginDto) {
-    const user = await this.validateUser(dto.email, dto.password);
-    const payload = { sub: user.id, email: user.email, roles: user.roles };
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        roles: user.roles,
-        nombre: user.nombre, // Asegúrate que el campo exista en la entidad User
+    // Crear cliente Prisma dinámico apuntando al esquema del tenant
+    const baseUrl = process.env.DATABASE_URL ?? '';
+    const tenantUrl = baseUrl.replace(/([?&])schema=[^&]*/, `$1schema=${dto.schemaName}`);
+    const prisma = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
+
+    try {
+      const u = await prisma.user.findUnique({ where: { email: dto.email } });
+
+      if (!u) throw new UnauthorizedException('Credenciales inválidas');
+      if (!u.active) throw new UnauthorizedException('Usuario inactivo');
+
+      const valid = await bcrypt.compare(dto.password, u.password);
+      if (!valid) throw new UnauthorizedException('Credenciales inválidas');
+
+      // Obtener el tenantId desde el esquema principal
+      const mainPrisma = new PrismaClient({
+        datasources: { db: { url: process.env.DATABASE_URL } },
+      });
+      let tenantId = 0;
+      try {
+        const tenant = await mainPrisma.tenant.findUnique({
+          where: { schemaName: dto.schemaName },
+          select: { id: true },
+        });
+        tenantId = tenant?.id ?? 0;
+      } finally {
+        await mainPrisma.$disconnect();
       }
-    };
+
+      const payload = {
+        sub:        u.id,
+        email:      u.email,
+        role:       u.role,
+        nombre:     u.nombre,
+        schemaName: dto.schemaName,
+        tenantId,
+      };
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id:         u.id,
+          email:      u.email,
+          role:       u.role,
+          nombre:     u.nombre,
+          schemaName: dto.schemaName,
+          tenantId,
+        },
+      };
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 }

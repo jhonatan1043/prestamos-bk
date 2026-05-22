@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IUserRepository } from '../domain/repositories/user.repository';
 import { User } from '../domain/entities/user.entity';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: TenantPrismaService) {}
 
   async create(data: Omit<User, 'id'>): Promise<User> {
     const created = await this.prisma.user.create({

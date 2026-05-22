@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IClienteRepository } from '../domain/repositories/cliente.repository';
 import { Cliente } from '../domain/entities/cliente.entity';
 
@@ -39,7 +39,7 @@ export class PrismaClienteRepository implements IClienteRepository {
           ),
       );
     }
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: TenantPrismaService) {}
 
   async create(cliente: Cliente): Promise<Cliente> {
     const created = await this.prisma.cliente.create({

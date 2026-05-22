@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UploadedFile, UseInterceptors, UseGuards, BadRequestException } from '@nestjs/common';
 import { EmpresaService } from '../application/empresa.service';
 import { Empresa } from '../domain/entities/empresa.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,7 +19,7 @@ export class EmpresaController {
   async create(@Body() dto: Partial<Empresa>) {
     // Validar campos obligatorios
     if (!dto.nombre || !dto.ruc || !dto.direccion || !dto.telefono || !dto.correo || !dto.divisa || !dto.codigoPais) {
-      throw new Error('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
+      throw new BadRequestException('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
     }
     return this.empresaService.create(dto);
   }
@@ -44,7 +44,7 @@ export class EmpresaController {
   async update(@Param('id') id: string, @Body() dto: Partial<Empresa>) {
     // Validar campos obligatorios
     if (!dto.nombre || !dto.ruc || !dto.direccion || !dto.telefono || !dto.correo || !dto.divisa || !dto.codigoPais) {
-      throw new Error('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
+      throw new BadRequestException('Faltan campos obligatorios: nombre, ruc, direccion, telefono, correo, divisa, codigoPais');
     }
     return this.empresaService.update(Number(id), dto);
   }
@@ -59,7 +59,7 @@ export class EmpresaController {
   @ApiOperation({ summary: 'Subir logo de empresa en base64' })
   @ApiBody({ schema: { type: 'object', properties: { base64: { type: 'string', description: 'Logo en base64' } } } })
   async uploadLogoBase64(@Param('id') id: string, @Body('base64') base64: string) {
-    if (!base64) throw new Error('El campo base64 es requerido');
+    if (!base64) throw new BadRequestException('El campo base64 es requerido');
     const empresa = await this.empresaService.updateLogoBase64(Number(id), base64);
     return { message: 'Logo actualizado', empresa };
   }
