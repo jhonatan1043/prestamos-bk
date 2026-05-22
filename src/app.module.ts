@@ -10,6 +10,7 @@ import { RutaModule } from './modules/ruta/ruta.module';
 import { GastosModule } from './modules/gastos/gastos.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 import { ServiciosExternosModule } from './modules/servicios-externos/servicios-externos.module';
+import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ServiciosExternosModule } from './modules/servicios-externos/servicios-
     GastosModule,
     EmpresaModule,
     ServiciosExternosModule,
+    SuscripcionesModule,
   ],
   controllers: [],
   providers: [],

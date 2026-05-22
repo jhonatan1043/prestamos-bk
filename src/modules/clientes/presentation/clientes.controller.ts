@@ -1,85 +1,82 @@
-// ...existing code...
-import { Controller, Post, Body, Get, Param, UseGuards, Put, Delete } from '@nestjs/common';
-import { ClientesService } from '../application//clientes.service';
+import { Controller, Post, Body, Get, Param, UseGuards, Put, Delete, Req } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiExtraModels } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
+import { ClientesService } from '../application/clientes.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiExtraModels } from '@nestjs/swagger';
 import { Cliente } from '../domain/entities/cliente.entity';
-import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 
-@ApiTags('clientes') // 🔑 Agrupa todos los endpoints bajo "clientes"
+@ApiTags('clientes')
 @ApiExtraModels(UpdateClienteDto)
-@ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('clientes')
 export class ClientesController {
-
-  @Get('disponibles')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Listar clientes sin préstamo activo' })
-  @ApiResponse({ status: 200, description: 'Listado de clientes sin préstamo activo', type: [Cliente] })
-  async findDisponibles() {
-    return await this.clientesService.findDisponibles();
-  }
-
-  @Get('cobrador/:cobradorId')
-  @ApiOperation({ summary: 'Listar clientes por cobradorId' })
-  @ApiParam({ name: 'cobradorId', type: Number, description: 'ID del usuario cobrador' })
-  @ApiResponse({ status: 200, description: 'Listado de clientes filtrado', type: [Cliente] })
-  async findByCobrador(@Param('cobradorId') cobradorId: string) {
-    return await this.clientesService.findByCobrador(Number(cobradorId));
-  }
-  constructor(private readonly clientesService: ClientesService) { }
-
-  @Get(':identificacion')
-  @ApiOperation({ summary: 'Buscar cliente por número de identificación' })
-  @ApiParam({ name: 'identificacion', type: String, description: 'Número de identificación del cliente' })
-  @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
-  @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
-  async buscarPorIdentificacion(@Param('identificacion') identificacion: string) {
-    return await this.clientesService.buscarPorIdentificacion(identificacion);
-  }
+  constructor(private readonly clientesService: ClientesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Crear un nuevo cliente' })
-  @ApiResponse({ status: 201, description: 'Cliente creado exitosamente', type: Cliente })
   @ApiBody({ type: CreateClienteDto })
-  async create(@Body() dto: CreateClienteDto) {
-    return await this.clientesService.create(dto);
+  @ApiResponse({ status: 201, type: Cliente })
+  create(@Req() req, @Body() dto: CreateClienteDto) {
+    return this.clientesService.create(dto, req.user?.id ?? 0);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar todos los clientes' })
-  @ApiResponse({ status: 200, description: 'Listado de clientes retornado', type: [Cliente] })
-  async findAll() {
-    return await this.clientesService.findAll();
+  @ApiResponse({ status: 200, type: [Cliente] })
+  findAll() {
+    return this.clientesService.findAll();
+  }
+
+  @Get('disponibles')
+  @ApiOperation({ summary: 'Listar clientes sin préstamo activo' })
+  @ApiResponse({ status: 200, type: [Cliente] })
+  findDisponibles() {
+    return this.clientesService.findDisponibles();
+  }
+
+  @Get('cobrador/:cobradorId')
+  @ApiOperation({ summary: 'Listar clientes por cobrador' })
+  @ApiParam({ name: 'cobradorId', type: Number })
+  @ApiResponse({ status: 200, type: [Cliente] })
+  findByCobrador(@Param('cobradorId') cobradorId: string) {
+    return this.clientesService.findByCobrador(Number(cobradorId));
   }
 
   @Get('id/:id')
   @ApiOperation({ summary: 'Obtener un cliente por ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del cliente' })
-  @ApiResponse({ status: 200, description: 'Cliente encontrado', type: Cliente })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: Cliente })
   @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
-  async findOne(@Param('id') id: string) {
-    console.log('Buscando cliente con ID:', id);
-    return await this.clientesService.findOne(+id);
+  findOne(@Param('id') id: string) {
+    return this.clientesService.findOne(+id);
+  }
+
+  @Get(':identificacion')
+  @ApiOperation({ summary: 'Buscar cliente por número de identificación' })
+  @ApiParam({ name: 'identificacion', type: String })
+  @ApiResponse({ status: 200, type: Cliente })
+  @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
+  buscarPorIdentificacion(@Param('identificacion') identificacion: string) {
+    return this.clientesService.buscarPorIdentificacion(identificacion);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar un cliente por ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del cliente' })
-  @ApiResponse({ status: 200, description: 'Cliente actualizado exitosamente', type: Cliente })
+  @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateClienteDto })
-  async update(@Param('id') id: string, @Body() dto: UpdateClienteDto) {
-    return await this.clientesService.update(+id, dto);
+  @ApiResponse({ status: 200, type: Cliente })
+  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateClienteDto) {
+    return this.clientesService.update(+id, dto, req.user?.id ?? 0);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un cliente por ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del cliente' })
+  @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Cliente eliminado exitosamente' })
   @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
-  async remove(@Param('id') id: string) {
-    return await this.clientesService.remove(+id);
+  remove(@Req() req, @Param('id') id: string) {
+    return this.clientesService.remove(+id, req.user?.id ?? 0);
   }
 }

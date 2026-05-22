@@ -179,6 +179,43 @@ model Empresa {
   @@map("Empresa")
 }
 
+enum EstadoSuscripcion {
+  ACTIVA
+  VENCIDA
+  CANCELADA
+}
+
+model Plan {
+  id                     Int      @id @default(autoincrement())
+  nombre                 String   @unique
+  descripcion            String?
+  maxUsuarios            Int      // -1 = ilimitado
+  maxClientes            Int      // -1 = ilimitado
+  maxPrestamosPorCliente Int      // -1 = ilimitado
+  precio                 Decimal  @db.Decimal(10, 2)
+  activo                 Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  suscripciones Suscripcion[]
+
+  @@map("Plan")
+}
+
+model Suscripcion {
+  id          Int                @id @default(autoincrement())
+  planId      Int
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  estado      EstadoSuscripcion  @default(ACTIVA)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@map("Suscripcion")
+}
+
 model ClienteRuta {
   clienteId Int @map("A")
   rutaId    Int @map("B")

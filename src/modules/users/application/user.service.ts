@@ -3,15 +3,18 @@ import * as userRepository from '../domain/repositories/user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { LimitesService } from '../../suscripciones/application/limites.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @Inject('IUserRepository') private readonly repo: userRepository.IUserRepository,
+    private readonly limitesService: LimitesService,
   ) {}
 
   async create(dto: CreateUserDto) {
-    // Validar si existe usuario con el mismo email
+    await this.limitesService.verificarUsuarios();
+
     const exists = await this.repo.findByEmail(dto.email);
     if (exists) {
       if (exists.active === false) {

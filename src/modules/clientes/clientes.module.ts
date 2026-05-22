@@ -3,14 +3,17 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaClienteRepository } from './infrastructure/cliente.repository';
 import { ClientesService } from './application/clientes.service';
 import { ClientesController } from './presentation/clientes.controller';
+import { AuditLogModule } from '../../common/audit/audit-log.module';
+import { SuscripcionesModule } from '../suscripciones/suscripciones.module';
 
 @Module({
-  controllers: [ClientesController], 
+  imports: [AuditLogModule, SuscripcionesModule],
+  controllers: [ClientesController],
   providers: [
     PrismaService,
     ClientesService,
     {
-      provide: 'IClienteRepository', // Token para inyección
+      provide: 'IClienteRepository',
       useClass: PrismaClienteRepository,
     },
   ],
