@@ -11,6 +11,7 @@ import { GastosModule } from './modules/gastos/gastos.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 import { ServiciosExternosModule } from './modules/servicios-externos/servicios-externos.module';
 import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
+import { TenantsModule } from './modules/tenants/tenants.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SuscripcionesModule } from './modules/suscripciones/suscripciones.modul
     EmpresaModule,
     ServiciosExternosModule,
     SuscripcionesModule,
+    TenantsModule,
   ],
   controllers: [],
   providers: [],
