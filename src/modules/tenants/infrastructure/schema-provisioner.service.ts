@@ -1,5 +1,6 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { execSync } from 'child_process';
+import { join } from 'path';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -45,7 +46,6 @@ export class SchemaProvisionerService {
   async ejecutarMigraciones(schemaName: string): Promise<void> {
     const baseUrl = process.env.DATABASE_URL ?? '';
 
-    // Reemplazar el parámetro ?schema=... con el nuevo esquema
     const tenantUrl = baseUrl.replace(
       /([?&])schema=[^&]*/,
       `$1schema=${schemaName}`,
@@ -57,15 +57,23 @@ export class SchemaProvisionerService {
       );
     }
 
+    // Raíz del proyecto — donde está prisma/schema.prisma
+    const projectRoot = process.cwd();
+
+    // Binario de prisma desde node_modules (funciona en dev y producción sin npx)
+    const isWindows = process.platform === 'win32';
+    const prismaBin  = join(projectRoot, 'node_modules', '.bin', isWindows ? 'prisma.cmd' : 'prisma');
+
     this.logger.log(`Ejecutando migraciones en esquema: ${schemaName}`);
 
     try {
-      execSync('npx prisma migrate deploy', {
+      execSync(`"${prismaBin}" migrate deploy`, {
         env: {
           ...process.env,
           DATABASE_URL: tenantUrl,
         },
-        stdio: 'pipe',
+        cwd:     projectRoot,   // prisma busca ./prisma/schema.prisma aquí
+        stdio:   'pipe',
         timeout: 120_000,
       });
       this.logger.log(`Migraciones aplicadas en "${schemaName}".`);

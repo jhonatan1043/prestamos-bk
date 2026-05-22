@@ -25,20 +25,21 @@ export class TenantController {
   // ─── Tenants CRUD ─────────────────────────────────────────────────────────
 
   /**
-   * POST /tenants
-   * Registra un nuevo cliente de la aplicación.
+   * POST /tenants  — PÚBLICO
+   * Registra un nuevo cliente (flujo de registro del frontend).
    * Crea automáticamente su esquema PostgreSQL y corre las migraciones.
    */
+  @Public()
   @Post()
   create(@Body() dto: CreateTenantDto) {
     return this.tenantService.create(dto);
   }
 
   /**
-   * GET /tenants
+   * GET /tenants  — PÚBLICO
    * Lista todos los tenants con su plan asignado.
-   * PROTEGIDO — solo admins autenticados.
    */
+  @Public()
   @Get()
   findAll() {
     return this.tenantService.findAll();
