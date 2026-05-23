@@ -1,18 +1,21 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
-import type { ISuscripcionRepository } from '../domain/repositories/suscripcion.repository';
-import type { IPlanRepository } from '../domain/repositories/plan.repository';
 import { LimiteExcedidoException } from '../domain/exceptions/limite-excedido.exception';
 import { Plan } from '../domain/entities/plan.entity';
 
+/**
+ * Verifica los límites del plan del tenant activo.
+ *
+ * Todas las consultas de suscripción y plan se hacen contra el ESQUEMA DEL TENANT
+ * (vía TenantPrismaService) porque al crear la empresa se siembran ahí los datos
+ * con SchemaProvisionerService.sembrarDatosTenant().
+ *
+ * Esto evita depender del tenantId en el JWT para buscar en el esquema principal.
+ */
 @Injectable()
 export class LimitesService {
   constructor(
-    @Inject('ISuscripcionRepository')
-    private readonly suscripcionRepository: ISuscripcionRepository,
-    @Inject('IPlanRepository')
-    private readonly planRepository: IPlanRepository,
     private readonly prisma: TenantPrismaService,
     private readonly tenantCtx: TenantContextService,
   ) {}
@@ -42,15 +45,23 @@ export class LimitesService {
 
   // ─── Plan activo del tenant ───────────────────────────────────────────────
 
+  /**
+   * Lee la suscripción activa desde el ESQUEMA DEL TENANT (no del esquema principal).
+   * Los datos fueron sembrados ahí por SchemaProvisionerService.sembrarDatosTenant().
+   */
   private async obtenerPlanActivo(): Promise<{ plan: Plan; suscripcionId: number | null }> {
     const tenantId = this.tenantCtx.getTenantId();
 
     if (!tenantId) {
-      // Sin contexto de tenant (ej: rutas de admin) → restricción máxima
+      // Sin contexto de tenant (ej: rutas de admin global) → restricción máxima
       return { plan: this.planFallback(), suscripcionId: null };
     }
 
-    const suscripcion = await this.suscripcionRepository.findActiva(tenantId);
+    const suscripcion = await this.prisma.suscripcion.findFirst({
+      where:   { estado: 'ACTIVA' },
+      orderBy: { fechaInicio: 'desc' },
+      include: { plan: true },
+    });
 
     if (!suscripcion?.plan) {
       return { plan: this.planFallback(), suscripcionId: null };
@@ -58,12 +69,14 @@ export class LimitesService {
 
     // Verificar si la suscripción venció
     if (suscripcion.fechaFin && new Date() > suscripcion.fechaFin) {
-      // Marcar como vencida automáticamente
-      await this.suscripcionRepository.update(suscripcion.id, { estado: 'VENCIDA' });
+      await this.prisma.suscripcion.update({
+        where: { id: suscripcion.id },
+        data:  { estado: 'VENCIDA' },
+      });
       return { plan: this.planFallback(), suscripcionId: suscripcion.id };
     }
 
-    return { plan: suscripcion.plan as Plan, suscripcionId: suscripcion.id };
+    return { plan: this.toPlain(suscripcion.plan), suscripcionId: suscripcion.id };
   }
 
   private planFallback(): Plan {
@@ -74,16 +87,36 @@ export class LimitesService {
     };
   }
 
+  private toPlain(p: any): Plan {
+    return {
+      id:                     p.id,
+      nombre:                 p.nombre,
+      descripcion:            p.descripcion ?? undefined,
+      maxUsuarios:            p.maxUsuarios,
+      maxClientes:            p.maxClientes,
+      maxPrestamosPorCliente: p.maxPrestamosPorCliente,
+      precio:                 Number(p.precio),
+      activo:                 p.activo,
+      createdAt:              p.createdAt,
+      updatedAt:              p.updatedAt,
+    };
+  }
+
   // ─── Info pública ─────────────────────────────────────────────────────────
 
   async obtenerEstadoActual() {
     const tenantId = this.tenantCtx.getTenantId();
     if (!tenantId) return { suscripcion: null, plan: null, uso: null };
 
-    const suscripcion = await this.suscripcionRepository.findActiva(tenantId);
+    const suscripcion = await this.prisma.suscripcion.findFirst({
+      where:   { estado: 'ACTIVA' },
+      orderBy: { fechaInicio: 'desc' },
+      include: { plan: true },
+    });
+
     if (!suscripcion?.plan) return { suscripcion: null, plan: null, uso: null };
 
-    const plan = suscripcion.plan as Plan;
+    const plan = this.toPlain(suscripcion.plan);
     const [usuarios, clientes, prestamosTotal] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.cliente.count({ where: { active: true } }),
@@ -128,8 +161,14 @@ export class LimitesService {
     limiteActual: number,
     planActual: Plan,
   ): Promise<never> {
-    const todosLosPlanes = await this.planRepository.findActivos();
-    const planesSuperiores = todosLosPlanes
+    // Obtener todos los planes del esquema del tenant (sembrados en la provisión)
+    const todos = await this.prisma.plan.findMany({
+      where:   { activo: true },
+      orderBy: { precio: 'asc' },
+    });
+
+    const planesSuperiores = todos
+      .map(p => this.toPlain(p))
       .filter(p => {
         if (p.id === planActual.id) return false;
         const campo: Record<string, number> = {
