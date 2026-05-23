@@ -57,7 +57,12 @@ export class TenantService {
     try {
       await this.provisioner.crearEsquema(schemaName);
       await this.provisioner.ejecutarMigraciones(schemaName);
-      await this.provisioner.sembrarDatosTenant(schemaName, dto.planId);   // ← estados + planes + suscripción
+      await this.provisioner.sembrarDatosTenant(schemaName, dto.planId, {
+        id:       tenant.id,
+        nombre:   tenant.nombre,
+        email:    tenant.email,
+        telefono: tenant.telefono ?? null,
+      });
       adminUser = await this.provisioner.crearUsuarioAdmin(schemaName, dto.nombre);
     } catch (error: any) {
       this.logger.error(`Error al provisionar esquema para tenant #${tenant.id}: ${error.message}`);
@@ -141,7 +146,12 @@ export class TenantService {
     const tenant = await this.findOne(id) as any;
     await this.provisioner.crearEsquema(tenant.schemaName);
     await this.provisioner.ejecutarMigraciones(tenant.schemaName);
-    await this.provisioner.sembrarDatosTenant(tenant.schemaName, tenant.planId);
+    await this.provisioner.sembrarDatosTenant(tenant.schemaName, tenant.planId, {
+      id:       tenant.id,
+      nombre:   tenant.nombre,
+      email:    tenant.email,
+      telefono: tenant.telefono ?? null,
+    });
     return this.repo.update(id, { estado: 'ACTIVO' });
   }
 

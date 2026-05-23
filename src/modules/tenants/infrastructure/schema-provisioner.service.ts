@@ -140,10 +140,14 @@ export class SchemaProvisionerService {
    *
    * Se llama justo después de ejecutarMigraciones.
    */
-  async sembrarDatosTenant(schemaName: string, planId: number): Promise<void> {
+  async sembrarDatosTenant(
+    schemaName: string,
+    planId: number,
+    tenant: { id: number; nombre: string; email: string; telefono?: string | null },
+  ): Promise<void> {
     this.logger.log(`Sembrando datos base en esquema: ${schemaName}`);
 
-    const baseUrl  = process.env.DATABASE_URL ?? '';
+    const baseUrl   = process.env.DATABASE_URL ?? '';
     const tenantUrl = baseUrl.replace(/([?&])schema=[^&]*/, `$1schema=${schemaName}`);
     const tenantPrisma = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
 
@@ -158,20 +162,19 @@ export class SchemaProvisionerService {
       }
       this.logger.log(`  ✅ Estados sembrados en "${schemaName}"`);
 
-      // ── 2. Planes (copiados desde el esquema principal) ──────────────────────
+      // ── 2. Planes (copiados desde el esquema principal con los mismos IDs) ────
       const planes = await this.prisma.plan.findMany({
         where:   { activo: true },
         orderBy: { id: 'asc' },
       });
 
       for (const p of planes) {
-        // Usamos raw para respetar los IDs originales (la FK de Suscripcion los necesita)
         await tenantPrisma.$executeRawUnsafe(
           `INSERT INTO "Plan"
             (id, nombre, descripcion, caracteristicas, "maxUsuarios", "maxClientes",
              "maxPrestamosPorCliente", precio, activo, "createdAt", "updatedAt")
            VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,NOW(),NOW())
-           ON CONFLICT (id) DO NOTHING`,
+           ON CONFLICT DO NOTHING`,
           p.id,
           p.nombre,
           p.descripcion ?? null,
@@ -179,35 +182,50 @@ export class SchemaProvisionerService {
           p.maxUsuarios,
           p.maxClientes,
           p.maxPrestamosPorCliente,
-          p.precio,
+          Number(p.precio),
           p.activo,
         );
       }
-
-      // Resetear la secuencia para que futuros autoincrement no colisionen
-      if (planes.length > 0) {
-        const maxId = Math.max(...planes.map(p => p.id));
-        await tenantPrisma.$executeRawUnsafe(
-          `SELECT setval(pg_get_serial_sequence('"Plan"', 'id'), $1, true)`,
-          maxId,
-        );
-      }
+      await tenantPrisma.$executeRawUnsafe(
+        `SELECT setval('"Plan_id_seq"', COALESCE((SELECT MAX(id) FROM "Plan"), 1), true)`,
+      );
       this.logger.log(`  ✅ ${planes.length} planes sembrados en "${schemaName}"`);
 
-      // ── 3. Suscripción activa ─────────────────────────────────────────────────
+      // ── 3. Tenant (espejo del registro principal dentro del propio esquema) ───
+      // Usamos el mismo ID del esquema principal para que la FK de Suscripcion coincida.
+      await tenantPrisma.$executeRawUnsafe(
+        `INSERT INTO "Tenant"
+          (id, nombre, email, telefono, "schemaName", "planId", estado, "createdAt", "updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,'ACTIVO',NOW(),NOW())
+         ON CONFLICT (id) DO UPDATE
+           SET nombre=$2, email=$3, telefono=$4, "planId"=$6, "updatedAt"=NOW()`,
+        tenant.id,
+        tenant.nombre,
+        tenant.email,
+        tenant.telefono ?? null,
+        schemaName,
+        planId,
+      );
+      // Resetear secuencia del Tenant
+      await tenantPrisma.$executeRawUnsafe(
+        `SELECT setval('"Tenant_id_seq"', COALESCE((SELECT MAX(id) FROM "Tenant"), 1), true)`,
+      );
+      this.logger.log(`  ✅ Tenant #${tenant.id} "${tenant.nombre}" registrado en "${schemaName}"`);
+
+      // ── 4. Suscripción activa vinculada al tenant ─────────────────────────────
       const plan         = planes.find(p => p.id === planId);
       const esPlanGratis = plan ? Number(plan.precio) === 0 : true;
 
       await tenantPrisma.suscripcion.create({
         data: {
+          tenantId:    tenant.id,                      // ← ahora sí sabe a qué empresa pertenece
           planId,
           fechaInicio: new Date(),
           fechaFin:    esPlanGratis ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           estado:      'ACTIVA',
-          // tenantId = null → en el esquema del tenant no es necesario (ya está aislado)
         },
       });
-      this.logger.log(`  ✅ Suscripción "${plan?.nombre ?? planId}" creada en "${schemaName}"`);
+      this.logger.log(`  ✅ Suscripción "${plan?.nombre ?? planId}" → tenant #${tenant.id} en "${schemaName}"`);
 
     } finally {
       await tenantPrisma.$disconnect();
