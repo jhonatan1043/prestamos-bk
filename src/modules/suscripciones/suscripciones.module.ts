@@ -11,10 +11,10 @@ import { SuscripcionController } from './presentation/suscripcion.controller';
 @Module({
   controllers: [PlanController, SuscripcionController],
   providers: [
-    PrismaService,
+    PrismaService,                        // esquema principal → planes y suscripciones de facturación
     PlanService,
     SuscripcionService,
-    LimitesService,
+    LimitesService,                       // usa TenantPrismaService (global) → esquema del tenant
     { provide: 'IPlanRepository',         useClass: PrismaPlanRepository },
     { provide: 'ISuscripcionRepository',  useClass: PrismaSuscripcionRepository },
   ],

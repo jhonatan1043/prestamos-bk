@@ -38,6 +38,9 @@ export class TenantPrismaService implements OnModuleDestroy {
   get gasto()       { return this.client.gasto; }
   get auditLog()    { return this.client.auditLog; }
   get clienteRuta() { return this.client.clienteRuta; }
+  // Suscripción y planes (se sembran en cada esquema al crear el tenant)
+  get suscripcion() { return this.client.suscripcion; }
+  get plan()        { return this.client.plan; }
 
   // ─── Métodos raw ──────────────────────────────────────────────────────────
   $executeRaw(query: TemplateStringsArray, ...values: any[]) {
