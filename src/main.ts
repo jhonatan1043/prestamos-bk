@@ -6,6 +6,9 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Desactiva ETag en Express para evitar que nginx devuelva 304 en POST
+  app.getHttpAdapter().getInstance().set('etag', false);
+
   // Configuración global de CORS
   app.enableCors({
     origin: true, // agrega aquí los dominios permitidos
