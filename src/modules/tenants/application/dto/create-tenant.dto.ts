@@ -43,4 +43,13 @@ export class CreateTenantDto {
   @IsString()
   @MaxLength(500)
   notas?: string;
+
+  /**
+   * Referencia del pago aprobado por Wompi.
+   * Obligatorio cuando el plan seleccionado tiene precio > 0.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  paymentReference?: string;
 }

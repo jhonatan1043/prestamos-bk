@@ -261,6 +261,29 @@ model PagoTenant {
   @@map("PagoTenant")
 }
 
+/// Transacciones de pago iniciadas a través de Wompi.
+/// Se crea ANTES de abrir el widget (status=PENDING) y se actualiza
+/// por el webhook cuando Wompi notifica el resultado.
+model WompiTransaccion {
+  id            Int       @id @default(autoincrement())
+  reference     String    @unique
+  planId        Int
+  amountInCents Int
+  currency      String    @default("COP")
+  email         String
+  tenantNombre  String?
+  /// null hasta que el tenant sea creado tras el pago
+  tenantId      Int?
+  /// PENDING | APPROVED | DECLINED | VOIDED | ERROR
+  status        String    @default("PENDING")
+  /// ID de transacción retornado por Wompi en el webhook
+  wompiId       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("WompiTransaccion")
+}
+
 model ClienteRuta {
   clienteId Int @map("A")
   rutaId    Int @map("B")

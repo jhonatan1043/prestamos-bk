@@ -14,8 +14,9 @@ import { GastosModule } from './modules/gastos/gastos.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 import { ServiciosExternosModule } from './modules/servicios-externos/servicios-externos.module';
 import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
-import { TenantsModule } from './modules/tenants/tenants.module';
-import { HealthController } from './health.controller';
+import { TenantsModule }      from './modules/tenants/tenants.module';
+import { PaymentsModule }     from './modules/payments/payments.module';
+import { HealthController }   from './health.controller';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { HealthController } from './health.controller';
     ServiciosExternosModule,
     SuscripcionesModule,
     TenantsModule,
+    PaymentsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -9,9 +9,10 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ITenantRepository } from '../domain/repositories/tenant.repository';
 import { SchemaProvisionerService } from '../infrastructure/schema-provisioner.service';
-import { CreateTenantDto } from './dto/create-tenant.dto';
-import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { CreateTenantDto }     from './dto/create-tenant.dto';
+import { UpdateTenantDto }     from './dto/update-tenant.dto';
 import { CreatePagoTenantDto } from './dto/create-pago-tenant.dto';
+import { PaymentsService }     from '../../payments/application/payments.service';
 
 @Injectable()
 export class TenantService {
@@ -21,7 +22,8 @@ export class TenantService {
     @Inject('ITenantRepository')
     private readonly repo: ITenantRepository,
     private readonly provisioner: SchemaProvisionerService,
-    private readonly prisma: PrismaService,   // esquema principal para suscripciones
+    private readonly prisma: PrismaService,         // esquema principal para suscripciones
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   // ─── Tenants ──────────────────────────────────────────────────────────────
@@ -30,6 +32,21 @@ export class TenantService {
     const existingEmail = await this.repo.findByEmail(dto.email);
     if (existingEmail) {
       throw new ConflictException(`El email "${dto.email}" ya está registrado para otro tenant`);
+    }
+
+    // ── Validar pago si el plan no es gratuito ─────────────────────────────
+    const planCheck = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    const esPlanDePago = planCheck && Number(planCheck.precio) > 0;
+
+    if (esPlanDePago) {
+      if (!dto.paymentReference) {
+        throw new BadRequestException(
+          'El plan seleccionado requiere pago. ' +
+          'Completa el proceso de pago y envía el campo paymentReference.',
+        );
+      }
+      // Lanza excepción si el pago no es válido/aprobado/ya fue usado
+      await this.paymentsService.validatePagoAprobado(dto.paymentReference, dto.planId);
     }
 
     let schemaName = dto.schemaSlug
@@ -73,6 +90,18 @@ export class TenantService {
     // 3. Crear suscripción inicial en el esquema principal
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     const esPlanGratis = plan ? Number(plan.precio) === 0 : true;
+
+    // 3a. Si hubo pago, registrarlo en PagoTenant y vincular la transacción Wompi
+    if (!esPlanGratis && dto.paymentReference) {
+      await this.repo.createPago({
+        tenantId:   tenant.id,
+        monto:      Number(plan!.precio),
+        concepto:   `Pago plan ${plan!.nombre} — Wompi`,
+        fecha:      new Date(),
+        referencia: dto.paymentReference,
+      });
+      await this.paymentsService.vincularTenant(dto.paymentReference, tenant.id);
+    }
 
     const suscripcion = await this.prisma.suscripcion.create({
       data: {
