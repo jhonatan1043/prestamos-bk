@@ -3,7 +3,7 @@ import type { IPagoRepository } from '../domain/repositories/pago.repository';
 import { Pago } from '../domain/entities/pago.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { PrestamoMoraResumidoDto } from '../presentation/dto/prestamo-mora-resumido.dto';
 import { PagoProyectadoDto } from '../presentation/dto/pago-proyectado.dto';
 import { AuditLogService, AuditAction } from '../../../common/audit/audit-log.service';
@@ -15,8 +15,7 @@ export class PagosService {
     private readonly pagoRepository: IPagoRepository,
     @Inject('IEstadoRepository')
     private readonly estadoRepository: any,
-    @Inject(PrismaService)
-    private readonly prisma: PrismaService,
+    private readonly prisma: TenantPrismaService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
