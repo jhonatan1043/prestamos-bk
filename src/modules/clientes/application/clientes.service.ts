@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import type { IClienteRepository } from '../domain/repositories/cliente.repository';
 import { CreateClienteDto } from '../presentation/dto/create-cliente.dto';
 import { UpdateClienteDto } from '../presentation/dto/update-cliente.dto';
@@ -12,7 +12,7 @@ export class ClientesService {
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: IClienteRepository,
-    private readonly prisma: PrismaService,
+    private readonly prisma: TenantPrismaService,
     private readonly auditLogService: AuditLogService,
     private readonly limitesService: LimitesService,
   ) {}
@@ -77,10 +77,11 @@ export class ClientesService {
 
   async findDisponibles() {
     const clientes = await this.clienteRepository.findAll();
-    const estadoActivo = await this.prisma.estado.findUnique({ where: { nombre: 'ACTIVO' } });
-    if (!estadoActivo) return clientes;
 
-    const prestamosActivos = await this.prisma.prestamo.findMany({ where: { estadoId: estadoActivo.id } });
+    // estadoId 1 = ACTIVO, 4 = MORA — ambos bloquean al cliente para nuevo préstamo
+    const prestamosActivos = await this.prisma.prestamo.findMany({
+      where: { estadoId: { in: [1, 4] } },
+    });
     const clientesConPrestamoActivo = new Set(prestamosActivos.map(p => p.clienteId));
     const clientesDisponibles = clientes.filter(c => c.id !== null && !clientesConPrestamoActivo.has(c.id!));
 
