@@ -8,9 +8,9 @@ export class CreatePagoDto {
   @IsNumber()
   prestamoId: number;
 
-  @ApiProperty({ example: 1, required: false })
+  @ApiProperty({ example: 1 })
   @IsNumber()
-  usuarioId?: number;
+  usuarioId: number;
 
   @ApiProperty({ example: '2025-09-04T12:00:00Z' })
   @IsDateString()

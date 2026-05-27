@@ -1,8 +1,9 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
+import { RecoverPasswordDto } from './dto/recover-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -60,6 +61,25 @@ export class AuthService {
           tenantId,
         },
       };
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  async recoverPassword(dto: RecoverPasswordDto): Promise<void> {
+    const baseUrl   = process.env.DATABASE_URL ?? '';
+    const tenantUrl = baseUrl.replace(/([?&])schema=[^&]*/, `$1schema=${dto.schemaName}`);
+    const prisma    = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
+
+    try {
+      const user = await prisma.user.findUnique({ where: { email: dto.email } });
+      if (!user) throw new NotFoundException('No se encontró ninguna cuenta con ese correo.');
+
+      const hashed = await bcrypt.hash(dto.newPassword, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data:  { password: hashed },
+      });
     } finally {
       await prisma.$disconnect();
     }
