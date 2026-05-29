@@ -94,15 +94,20 @@ export class SuscripcionService {
     }
 
     // 4. Crear nueva suscripción
+    // duracionDias === 0 → sin vencimiento (fechaFin null)
+    const duracion   = (plan as any).duracionDias ?? 30;
     const fechaInicio = new Date();
-    const fechaFin    = new Date(fechaInicio);
-    fechaFin.setDate(fechaFin.getDate() + ((plan as any).duracionDias ?? 30));
+    let   fechaFin: Date | undefined;
+    if (duracion > 0) {
+      fechaFin = new Date(fechaInicio);
+      fechaFin.setDate(fechaFin.getDate() + duracion);
+    }
 
     const nueva = await this.suscripcionRepository.create({
       tenantId,
       planId:      dto.planId,
       fechaInicio,
-      fechaFin,
+      fechaFin,    // undefined → Prisma guarda null → no vence
       estado:      'ACTIVA',
     });
 
