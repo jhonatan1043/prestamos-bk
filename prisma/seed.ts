@@ -30,6 +30,7 @@ async function seedPlanes() {
       maxClientes: 20,
       maxPrestamosPorCliente: 5,
       precio: 0.00,
+      duracionDias: 30,
       activo: true,
     },
     {
@@ -46,6 +47,7 @@ async function seedPlanes() {
       maxClientes: 100,
       maxPrestamosPorCliente: 20,
       precio: 20.00,
+      duracionDias: 30,
       activo: true,
     },
     {
@@ -63,6 +65,7 @@ async function seedPlanes() {
       maxClientes: 200,
       maxPrestamosPorCliente: 50,
       precio: 50.00,
+      duracionDias: 30,
       activo: true,
     },
     {
@@ -81,6 +84,7 @@ async function seedPlanes() {
       maxClientes: 300,
       maxPrestamosPorCliente: -1,
       precio: 100.00,
+      duracionDias: 30,
       activo: true,
     },
   ];

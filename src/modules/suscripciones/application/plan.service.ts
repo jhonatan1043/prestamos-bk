@@ -11,7 +11,11 @@ export class PlanService {
   ) {}
 
   async create(dto: CreatePlanDto) {
-    return this.planRepository.create({ ...dto, activo: dto.activo ?? true });
+    return this.planRepository.create({
+      ...dto,
+      duracionDias: dto.duracionDias ?? 30,
+      activo:       dto.activo ?? true,
+    });
   }
 
   async findAll() {

@@ -172,8 +172,8 @@ export class SchemaProvisionerService {
         await tenantPrisma.$executeRawUnsafe(
           `INSERT INTO "Plan"
             (id, nombre, descripcion, caracteristicas, "maxUsuarios", "maxClientes",
-             "maxPrestamosPorCliente", precio, activo, "createdAt", "updatedAt")
-           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,NOW(),NOW())
+             "maxPrestamosPorCliente", precio, "duracionDias", activo, "createdAt", "updatedAt")
+           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,NOW(),NOW())
            ON CONFLICT DO NOTHING`,
           p.id,
           p.nombre,
@@ -183,6 +183,7 @@ export class SchemaProvisionerService {
           p.maxClientes,
           p.maxPrestamosPorCliente,
           Number(p.precio),
+          (p as any).duracionDias ?? 30,
           p.activo,
         );
       }

@@ -23,7 +23,14 @@ export class PrismaSuscripcionRepository implements ISuscripcionRepository {
 
   async findActiva(tenantId: number): Promise<Suscripcion | null> {
     const found = await this.prisma.suscripcion.findFirst({
-      where: { tenantId, estado: 'ACTIVA' },
+      where: {
+        tenantId,
+        estado: 'ACTIVA',
+        OR: [
+          { fechaFin: null },
+          { fechaFin: { gt: new Date() } },
+        ],
+      },
       orderBy: { fechaInicio: 'desc' },
       include: { plan: true },
     });
@@ -82,6 +89,7 @@ export class PrismaSuscripcionRepository implements ISuscripcionRepository {
         maxClientes:            s.plan.maxClientes,
         maxPrestamosPorCliente: s.plan.maxPrestamosPorCliente,
         precio:                 Number(s.plan.precio),
+        duracionDias:           (s.plan as any).duracionDias ?? 30,
         activo:                 s.plan.activo,
         createdAt:              s.plan.createdAt,
         updatedAt:              s.plan.updatedAt,
