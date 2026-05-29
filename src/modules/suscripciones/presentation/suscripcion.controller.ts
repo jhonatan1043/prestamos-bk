@@ -4,6 +4,7 @@ import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 import { SuscripcionService } from '../application/suscripcion.service';
 import { LimitesService } from '../application/limites.service';
 import { CreateSuscripcionDto } from '../application/dto/create-suscripcion.dto';
+import { RenovarSuscripcionDto } from '../application/dto/renovar-suscripcion.dto';
 import { Suscripcion } from '../domain/entities/suscripcion.entity';
 
 @ApiTags('suscripciones')
@@ -21,6 +22,14 @@ export class SuscripcionController {
   @ApiResponse({ status: 201, type: Suscripcion })
   activar(@Body() dto: CreateSuscripcionDto) {
     return this.suscripcionService.activar(dto);
+  }
+
+  @Post('renovar')
+  @ApiOperation({ summary: 'Renovar suscripción tras pago aprobado en Wompi' })
+  @ApiResponse({ status: 201, type: Suscripcion, description: 'Nueva suscripción activa' })
+  @ApiResponse({ status: 400, description: 'Pago no aprobado o referencia inválida' })
+  renovar(@Body() dto: RenovarSuscripcionDto) {
+    return this.suscripcionService.renovar(dto);
   }
 
   @Get()

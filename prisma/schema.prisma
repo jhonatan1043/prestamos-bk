@@ -194,6 +194,7 @@ model Plan {
   maxClientes            Int      // -1 = ilimitado
   maxPrestamosPorCliente Int      // -1 = ilimitado
   precio                 Decimal  @db.Decimal(10, 2)
+  duracionDias           Int      @default(30)  // días de vigencia al renovar; 0 = sin vencimiento
   activo                 Boolean  @default(true)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt

@@ -3,6 +3,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TenantModule } from './common/tenant/tenant.module';
 import { TenantInterceptor } from './common/tenant/tenant.interceptor';
+import { SuscripcionActivaInterceptor } from './common/interceptors/suscripcion-activa.interceptor';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { GeolocalizacionModule } from './modules/geolocalizacion/geolocalizacion.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -40,7 +41,11 @@ import { HealthController }   from './health.controller';
   providers: [
     {
       provide:  APP_INTERCEPTOR,
-      useClass: TenantInterceptor,   // ← activa el contexto de tenant en cada request
+      useClass: TenantInterceptor,             // 1º: activa el contexto de tenant (AsyncLocalStorage)
+    },
+    {
+      provide:  APP_INTERCEPTOR,
+      useClass: SuscripcionActivaInterceptor,  // 2º: bloquea escrituras si el plan venció
     },
   ],
 })

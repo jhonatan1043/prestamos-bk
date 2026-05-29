@@ -83,7 +83,7 @@ export class LimitesService {
     return {
       id: 0, nombre: 'Sin plan activo',
       maxUsuarios: 1, maxClientes: 10, maxPrestamosPorCliente: 1,
-      precio: 0, activo: true, createdAt: new Date(), updatedAt: new Date(),
+      precio: 0, duracionDias: 30, activo: true, createdAt: new Date(), updatedAt: new Date(),
     };
   }
 
@@ -96,6 +96,7 @@ export class LimitesService {
       maxClientes:            p.maxClientes,
       maxPrestamosPorCliente: p.maxPrestamosPorCliente,
       precio:                 Number(p.precio),
+      duracionDias:           p.duracionDias ?? 30,
       activo:                 p.activo,
       createdAt:              p.createdAt,
       updatedAt:              p.updatedAt,

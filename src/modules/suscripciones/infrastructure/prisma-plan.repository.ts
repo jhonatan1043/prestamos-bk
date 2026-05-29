@@ -38,16 +38,17 @@ export class PrismaPlanRepository implements IPlanRepository {
 
   private toEntity(p: any): Plan {
     return {
-      id: p.id,
-      nombre: p.nombre,
-      descripcion: p.descripcion ?? undefined,
-      maxUsuarios: p.maxUsuarios,
-      maxClientes: p.maxClientes,
+      id:                     p.id,
+      nombre:                 p.nombre,
+      descripcion:            p.descripcion ?? undefined,
+      maxUsuarios:            p.maxUsuarios,
+      maxClientes:            p.maxClientes,
       maxPrestamosPorCliente: p.maxPrestamosPorCliente,
-      precio: Number(p.precio),
-      activo: p.activo,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
+      precio:                 Number(p.precio),
+      duracionDias:           p.duracionDias ?? 30,
+      activo:                 p.activo,
+      createdAt:              p.createdAt,
+      updatedAt:              p.updatedAt,
     };
   }
 }

@@ -36,6 +36,10 @@ export class CreatePlanDto {
   @IsNumber() @Min(0)
   precio: number;
 
+  @ApiProperty({ example: 30, description: 'Días de vigencia de la suscripción al renovar', required: false })
+  @IsOptional() @IsInt() @Min(0)
+  duracionDias?: number;
+
   @ApiProperty({ example: true, required: false })
   @IsOptional() @IsBoolean()
   activo?: boolean;
