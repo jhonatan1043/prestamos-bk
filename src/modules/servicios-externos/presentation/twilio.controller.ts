@@ -49,7 +49,8 @@ export class TwilioController {
     const fromNumber = process.env.TWILIO_FROM_NUMBER ?? '';
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${fromNumber}">
+  <Say language="es-MX" voice="alice">Por favor espere, estamos conectando con su cliente.</Say>
+  <Dial callerId="${fromNumber}" timeout="30">
     <Number>${tecnico}</Number>
   </Dial>
 </Response>`;
