@@ -26,6 +26,7 @@ export class TwilioService {
 
   async hacerLlamada(dto: HacerLlamadaDto) {
     const twimlUrl = dto.twimlUrl ?? this.defaultTwimlUrl;
+    this.logger.log(`📞 hacerLlamada → to=${dto.to} | twimlUrl=${twimlUrl}`);
     try {
       const llamada = await this.client.calls.create({
         to: dto.to,
