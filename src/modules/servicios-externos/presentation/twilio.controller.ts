@@ -45,15 +45,22 @@ export class TwilioController {
     return this._twimlResponse(tecnico, res);
   }
 
+  // Twilio llama aquí cuando el <Dial> termina (timeout o cliente colgó)
+  @Get('twiml/fin')
+  @ApiOperation({ summary: 'TwiML: cierra la llamada limpiamente al terminar el Dial' })
+  twimlFin(@Res() res: Response) {
+    res.setHeader('Content-Type', 'text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+  }
+
   private _twimlResponse(tecnico: string, res: Response) {
     const fromNumber = process.env.TWILIO_FROM_NUMBER ?? '';
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-MX" voice="alice">Por favor espere, estamos conectando con su cliente.</Say>
-  <Dial callerId="${fromNumber}" timeout="30">
+  <Dial callerId="${fromNumber}" timeout="60" action="/servicios-externos/twilio/twiml/fin" method="GET">
     <Number>${tecnico}</Number>
   </Dial>
-  <Hangup/>
 </Response>`;
     res.setHeader('Content-Type', 'text/xml');
     res.send(xml);
