@@ -38,7 +38,8 @@ export class TwilioService {
 
       return {
         sid: llamada.sid,
-        estado: llamada.status,
+        status: llamada.status,   // para Flutter
+        estado: llamada.status,   // compatibilidad
         to: llamada.to,
         from: llamada.from,
         fechaCreacion: llamada.dateCreated,
@@ -54,7 +55,9 @@ export class TwilioService {
       const llamada = await this.client.calls(sid).fetch();
       return {
         sid: llamada.sid,
-        estado: llamada.status,
+        status: llamada.status,   // para Flutter
+        estado: llamada.status,   // compatibilidad
+        duration: llamada.duration,
         duracion: llamada.duration,
         to: llamada.to,
         from: llamada.from,
