@@ -31,6 +31,7 @@ export class TwilioService {
         to: dto.to,
         from: this.fromNumber,
         url: twimlUrl,
+        method: 'GET',   // el endpoint /twiml/conectar solo acepta GET
       });
 
       this.logger.log(`Llamada iniciada: SID=${llamada.sid} to=${dto.to}`);
