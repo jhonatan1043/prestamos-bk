@@ -53,6 +53,7 @@ export class TwilioController {
   <Dial callerId="${fromNumber}" timeout="30">
     <Number>${tecnico}</Number>
   </Dial>
+  <Hangup/>
 </Response>`;
     res.setHeader('Content-Type', 'text/xml');
     res.send(xml);
