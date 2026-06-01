@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TenantModule } from './common/tenant/tenant.module';
 import { TenantInterceptor } from './common/tenant/tenant.interceptor';
 import { SuscripcionActivaInterceptor } from './common/interceptors/suscripcion-activa.interceptor';
+import { PrismaService } from './common/prisma/prisma.service';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { GeolocalizacionModule } from './modules/geolocalizacion/geolocalizacion.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -39,6 +40,7 @@ import { HealthController }   from './health.controller';
   ],
   controllers: [HealthController],
   providers: [
+    PrismaService,                             // disponible para los interceptores globales
     {
       provide:  APP_INTERCEPTOR,
       useClass: TenantInterceptor,             // 1º: activa el contexto de tenant (AsyncLocalStorage)

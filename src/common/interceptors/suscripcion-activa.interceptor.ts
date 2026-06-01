@@ -6,25 +6,24 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, from, switchMap } from 'rxjs';
+import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../tenant/tenant-prisma.service';
-import { TenantContextService } from '../tenant/tenant-context.service';
 
 /**
  * Interceptor de solo-lectura cuando el plan del tenant está vencido.
+ *
+ * Lee la suscripción del ESQUEMA PRINCIPAL (tst.Suscripcion) usando el
+ * tenantId del JWT — que es la fuente de verdad para facturación/renovaciones.
+ * Así funciona correctamente tanto en la suscripción inicial como tras renovar.
  *
  * Reglas:
  *  - Peticiones GET → siempre permitidas.
  *  - Peticiones de escritura (POST/PUT/PATCH/DELETE) → verifica suscripción activa.
  *  - Rutas exentas: /auth, /payments, /tenants, /health,
- *    POST /suscripciones/activar y POST /suscripciones/renovar
- *    (sin estas excepciones el usuario nunca podría renovar su plan).
- *
- * Se registra como APP_INTERCEPTOR DESPUÉS de TenantInterceptor, por lo que
- * el AsyncLocalStorage del tenant ya está activo cuando este interceptor corre.
+ *    POST /suscripciones/activar y POST /suscripciones/renovar.
  */
 @Injectable()
 export class SuscripcionActivaInterceptor implements NestInterceptor {
-  // Prefijos de ruta que NUNCA se bloquean (incluso en mutaciones)
   private static readonly EXEMPT_PREFIXES = [
     '/auth',
     '/payments',
@@ -32,7 +31,6 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
     '/health',
   ];
 
-  // Sufijos de ruta exactos exentos
   private static readonly EXEMPT_SUFFIXES = [
     '/suscripciones/activar',
     '/suscripciones/renovar',
@@ -41,8 +39,8 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
   private static readonly WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
   constructor(
-    private readonly prisma: TenantPrismaService,
-    private readonly ctx: TenantContextService,
+    private readonly prisma: PrismaService,
+    private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -55,6 +53,7 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
 
     // Rutas públicas (sin usuario autenticado) → pasar
     if (!req.user?.schemaName) return next.handle();
+    const tenantId: number = Number(req.user?.tenantId ?? 0);
 
     // Rutas exentas
     const path: string = req.path ?? req.url ?? '';
@@ -65,32 +64,33 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    // Sin contexto de tenant activo → pasar (rutas de admin global)
-    if (!this.ctx.getTenantId()) return next.handle();
-
-    // Verificar suscripción y luego proceder
-    return from(this.verificarSuscripcion()).pipe(
+    return from(this.verificarSuscripcion(tenantId)).pipe(
       switchMap(() => next.handle()),
     );
   }
 
-  private async verificarSuscripcion(): Promise<void> {
-    const suscripcion = await this.prisma.suscripcion.findFirst({
-      where: {
-        estado: 'ACTIVA',
-        OR: [
-          { fechaFin: null },
-          { fechaFin: { gt: new Date() } },
-        ],
-      },
-      orderBy: { fechaInicio: 'desc' },
-    });
+  private async verificarSuscripcion(tenantId: number): Promise<void> {
+    const filtroFechaOr = [{ fechaFin: null }, { fechaFin: { gt: new Date() } }];
 
-    if (!suscripcion) {
-      throw new ForbiddenException({
-        code:    'PLAN_VENCIDO',
-        message: 'Tu plan ha vencido. Solo puedes consultar información. Renueva tu suscripción para continuar operando.',
+    // 1. Esquema principal con tenantId (fuente de verdad post-renovación)
+    if (tenantId > 0) {
+      const sus = await this.prisma.suscripcion.findFirst({
+        where: { tenantId, estado: 'ACTIVA', OR: filtroFechaOr },
       });
+      if (sus) return; // ✅
     }
+
+    // 2. Fallback: esquema del tenant (JWTs sin tenantId o tenantId=0)
+    try {
+      const sus = await this.tenantPrisma.suscripcion.findFirst({
+        where: { estado: 'ACTIVA', OR: filtroFechaOr },
+      });
+      if (sus) return; // ✅
+    } catch { /* esquema no disponible */ }
+
+    throw new ForbiddenException({
+      code:    'PLAN_VENCIDO',
+      message: 'Tu plan ha vencido. Solo puedes consultar información. Renueva tu suscripción para continuar operando.',
+    });
   }
 }

@@ -12,8 +12,11 @@ export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Post()
-  @ApiOperation({ summary: 'Crear usuario' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear usuario en el esquema del tenant autenticado' })
   @ApiResponse({ status: 201, description: 'Usuario creado' })
+  @ApiResponse({ status: 402, description: 'Límite de usuarios del plan excedido' })
   create(@Body() dto: CreateUserDto) {
     return this.userService.create(dto);
   }

@@ -1,22 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
+import { PrismaService } from '../../../common/prisma/prisma.service';
 import { LimiteExcedidoException } from '../domain/exceptions/limite-excedido.exception';
 import { Plan } from '../domain/entities/plan.entity';
 
 /**
  * Verifica los límites del plan del tenant activo.
  *
- * Todas las consultas de suscripción y plan se hacen contra el ESQUEMA DEL TENANT
- * (vía TenantPrismaService) porque al crear la empresa se siembran ahí los datos
- * con SchemaProvisionerService.sembrarDatosTenant().
+ * La suscripción se consulta en el ESQUEMA PRINCIPAL (PrismaService) usando el
+ * tenantId del contexto — que es la fuente de verdad para facturación/renovaciones.
  *
- * Esto evita depender del tenantId en el JWT para buscar en el esquema principal.
+ * Los conteos de uso (clientes, usuarios, préstamos) se leen del ESQUEMA DEL TENANT
+ * (TenantPrismaService) porque ahí viven los datos operativos.
  */
 @Injectable()
 export class LimitesService {
   constructor(
-    private readonly prisma: TenantPrismaService,
+    private readonly prisma: TenantPrismaService,    // esquema tenant → conteos de uso
+    private readonly mainPrisma: PrismaService,       // esquema principal → suscripción/plan
     private readonly tenantCtx: TenantContextService,
   ) {}
 
@@ -46,37 +48,44 @@ export class LimitesService {
   // ─── Plan activo del tenant ───────────────────────────────────────────────
 
   /**
-   * Lee la suscripción activa desde el ESQUEMA DEL TENANT (no del esquema principal).
-   * Los datos fueron sembrados ahí por SchemaProvisionerService.sembrarDatosTenant().
+   * Busca el plan activo del tenant con doble estrategia:
+   *
+   *  1. ESQUEMA PRINCIPAL (mainPrisma + tenantId):
+   *     Fuente de verdad para renovaciones y cambios de plan.
+   *     Requiere que el JWT tenga tenantId > 0.
+   *
+   *  2. ESQUEMA DEL TENANT (TenantPrismaService, sin tenantId):
+   *     Fallback para JWTs antiguos (sin tenantId) o cuando la consulta
+   *     al esquema principal no devuelve resultados.
+   *
+   *  Si ninguna encuentra una suscripción activa → plan fallback (mínimos).
    */
   private async obtenerPlanActivo(): Promise<{ plan: Plan; suscripcionId: number | null }> {
     const tenantId = this.tenantCtx.getTenantId();
+    const now      = new Date();
+    const filtroFechaOr = [{ fechaFin: null }, { fechaFin: { gt: now } }];
 
-    if (!tenantId) {
-      // Sin contexto de tenant (ej: rutas de admin global) → restricción máxima
-      return { plan: this.planFallback(), suscripcionId: null };
+    // ── 1. Esquema principal (fuente de verdad post-renovación) ────────────
+    if (tenantId) {
+      const sus = await this.mainPrisma.suscripcion.findFirst({
+        where:   { tenantId, estado: 'ACTIVA', OR: filtroFechaOr },
+        orderBy: { fechaInicio: 'desc' },
+        include: { plan: true },
+      }) as any;
+      if (sus?.plan) return { plan: this.toPlain(sus.plan), suscripcionId: sus.id };
     }
 
-    const suscripcion = await this.prisma.suscripcion.findFirst({
-      where:   { estado: 'ACTIVA' },
-      orderBy: { fechaInicio: 'desc' },
-      include: { plan: true },
-    });
+    // ── 2. Esquema del tenant (fallback para JWTs sin tenantId) ────────────
+    try {
+      const sus = await this.prisma.suscripcion.findFirst({
+        where:   { estado: 'ACTIVA', OR: filtroFechaOr },
+        orderBy: { fechaInicio: 'desc' },
+        include: { plan: true },
+      }) as any;
+      if (sus?.plan) return { plan: this.toPlain(sus.plan), suscripcionId: sus.id };
+    } catch { /* si el esquema del tenant no está disponible, seguir al fallback */ }
 
-    if (!suscripcion?.plan) {
-      return { plan: this.planFallback(), suscripcionId: null };
-    }
-
-    // Verificar si la suscripción venció
-    if (suscripcion.fechaFin && new Date() > suscripcion.fechaFin) {
-      await this.prisma.suscripcion.update({
-        where: { id: suscripcion.id },
-        data:  { estado: 'VENCIDA' },
-      });
-      return { plan: this.planFallback(), suscripcionId: suscripcion.id };
-    }
-
-    return { plan: this.toPlain(suscripcion.plan), suscripcionId: suscripcion.id };
+    return { plan: this.planFallback(), suscripcionId: null };
   }
 
   private planFallback(): Plan {
@@ -109,11 +118,26 @@ export class LimitesService {
     const tenantId = this.tenantCtx.getTenantId();
     if (!tenantId) return { suscripcion: null, plan: null, uso: null };
 
-    const suscripcion = await this.prisma.suscripcion.findFirst({
-      where:   { estado: 'ACTIVA' },
+    const now         = new Date();
+    const filtroFechaOr = [{ fechaFin: null }, { fechaFin: { gt: now } }];
+
+    // 1. Esquema principal (post-renovaciones)
+    let suscripcion: any = await this.mainPrisma.suscripcion.findFirst({
+      where:   { tenantId, estado: 'ACTIVA', OR: filtroFechaOr },
       orderBy: { fechaInicio: 'desc' },
       include: { plan: true },
     });
+
+    // 2. Fallback al esquema del tenant si no hay resultados
+    if (!suscripcion?.plan) {
+      try {
+        suscripcion = await this.prisma.suscripcion.findFirst({
+          where:   { estado: 'ACTIVA', OR: filtroFechaOr },
+          orderBy: { fechaInicio: 'desc' },
+          include: { plan: true },
+        });
+      } catch { /* ignorar si esquema no disponible */ }
+    }
 
     if (!suscripcion?.plan) return { suscripcion: null, plan: null, uso: null };
 
