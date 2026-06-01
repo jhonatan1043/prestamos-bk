@@ -213,16 +213,21 @@ export class SchemaProvisionerService {
       );
       this.logger.log(`  ✅ Tenant #${tenant.id} "${tenant.nombre}" registrado en "${schemaName}"`);
 
-      // ── 4. Suscripción activa vinculada al tenant ─────────────────────────────
+      // ── 4. Suscripción de referencia local en el esquema del tenant ─────────
+      // Nota: la suscripción de facturación real vive en el esquema principal.
+      // Esta copia local puede ser útil para consultas offline del tenant.
       const plan         = planes.find(p => p.id === planId);
       const esPlanGratis = plan ? Number(plan.precio) === 0 : true;
+      const duracionDias = plan ? Number((plan as any).duracionDias ?? 30) : 30;
 
       await tenantPrisma.suscripcion.create({
         data: {
-          tenantId:    tenant.id,                      // ← ahora sí sabe a qué empresa pertenece
+          tenantId:    tenant.id,
           planId,
           fechaInicio: new Date(),
-          fechaFin:    esPlanGratis ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          fechaFin: (esPlanGratis || duracionDias === 0)
+            ? null
+            : new Date(Date.now() + duracionDias * 24 * 60 * 60 * 1000),
           estado:      'ACTIVA',
         },
       });

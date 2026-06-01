@@ -12,11 +12,14 @@ export class TenantInterceptor implements NestInterceptor {
   constructor(private readonly ctx: TenantContextService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request   = context.switchToHttp().getRequest();
+    const request    = context.switchToHttp().getRequest();
     const schemaName: string | undefined = request.user?.schemaName;
-    const tenantId:   number | undefined = request.user?.tenantId;
+    // tenantId puede ser 0 si el JWT fue emitido antes de que se guardara correctamente.
+    // Activamos el contexto con solo schemaName; LimitesService tiene fallback al
+    // esquema del tenant para cuando tenantId sea 0.
+    const tenantId:  number = Number(request.user?.tenantId ?? 0);
 
-    if (!schemaName || !tenantId) {
+    if (!schemaName) {
       return next.handle();
     }
 

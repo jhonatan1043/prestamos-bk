@@ -103,13 +103,16 @@ export class TenantService {
       await this.paymentsService.vincularTenant(dto.paymentReference, tenant.id);
     }
 
+    const duracionDias = plan ? Number((plan as any).duracionDias ?? 30) : 30;
     const suscripcion = await this.prisma.suscripcion.create({
       data: {
         tenantId:    tenant.id,
         planId:      dto.planId,
         fechaInicio: new Date(),
-        // Plan gratis → no vence. Planes de pago → 30 días por defecto (renovar manualmente)
-        fechaFin:    esPlanGratis ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        // duracionDias === 0 → sin vencimiento (plan ilimitado)
+        fechaFin: (esPlanGratis || duracionDias === 0)
+          ? null
+          : new Date(Date.now() + duracionDias * 24 * 60 * 60 * 1000),
         estado:      'ACTIVA',
       },
       include: { plan: true },
@@ -122,7 +125,9 @@ export class TenantService {
         plan:        suscripcion.plan.nombre,
         fechaInicio: suscripcion.fechaInicio,
         fechaFin:    suscripcion.fechaFin ?? null,
-        vence:       suscripcion.fechaFin ? 'en 30 días' : 'No vence',
+        vence:       suscripcion.fechaFin
+          ? `en ${duracionDias} días`
+          : 'No vence',
       },
       adminUser: {
         nombre:   adminUser.nombre,
