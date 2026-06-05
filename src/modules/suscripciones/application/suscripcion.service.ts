@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
+import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ISuscripcionRepository } from '../domain/repositories/suscripcion.repository';
 import type { IPlanRepository } from '../domain/repositories/plan.repository';
 import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
@@ -15,8 +16,39 @@ export class SuscripcionService {
     private readonly planRepository: IPlanRepository,
     private readonly tenantCtx: TenantContextService,
     private readonly paymentsService: PaymentsService,
+    private readonly mainPrisma: PrismaService,
   ) {}
 
+  /**
+   * Resuelve el tenantId del contexto activo.
+   *
+   * Estrategia doble:
+   *  1. Usa tenantId del AsyncLocalStorage (viene en el JWT via TenantInterceptor).
+   *  2. Si es 0 (JWT viejo sin tenantId), busca el tenant por schemaName en el
+   *     esquema principal. Esto garantiza que renovar() siempre tenga un tenantId válido.
+   */
+  private async resolverTenantId(): Promise<number> {
+    const id = this.tenantCtx.getTenantId();
+    if (id) return id;
+
+    // Fallback: buscar por schemaName en el esquema principal
+    const schemaName = this.tenantCtx.getSchema();
+    const mainSchema = process.env.MAIN_SCHEMA ?? 'tst';
+    if (!schemaName || schemaName === mainSchema) {
+      throw new ConflictException('No hay tenant activo en el contexto');
+    }
+
+    const tenant = await this.mainPrisma.tenant.findUnique({
+      where:  { schemaName },
+      select: { id: true },
+    });
+    if (!tenant?.id) {
+      throw new ConflictException(`Tenant con esquema "${schemaName}" no encontrado`);
+    }
+    return tenant.id;
+  }
+
+  /** Versión síncrona para métodos que no necesitan el fallback */
   private getTenantId(): number {
     const id = this.tenantCtx.getTenantId();
     if (!id) throw new ConflictException('No hay tenant activo en el contexto');
@@ -24,7 +56,7 @@ export class SuscripcionService {
   }
 
   async activar(dto: CreateSuscripcionDto) {
-    const tenantId = this.getTenantId();
+    const tenantId = await this.resolverTenantId();
 
     const plan = await this.planRepository.findById(dto.planId);
     if (!plan)       throw new NotFoundException('Plan no encontrado');
@@ -46,14 +78,14 @@ export class SuscripcionService {
   }
 
   async findActiva() {
-    const tenantId    = this.getTenantId();
+    const tenantId    = await this.resolverTenantId();
     const suscripcion = await this.suscripcionRepository.findActiva(tenantId);
     if (!suscripcion) throw new NotFoundException('No hay suscripción activa para este tenant');
     return suscripcion;
   }
 
   async findByTenant() {
-    const tenantId = this.getTenantId();
+    const tenantId = await this.resolverTenantId();
     return this.suscripcionRepository.findByTenant(tenantId);
   }
 
@@ -77,7 +109,8 @@ export class SuscripcionService {
    *  4. Vincula el pago al tenant para evitar reusos.
    */
   async renovar(dto: RenovarSuscripcionDto) {
-    const tenantId = this.getTenantId();
+    // Usa resolverTenantId para manejar JWTs sin tenantId (busca por schemaName)
+    const tenantId = await this.resolverTenantId();
 
     // 1. Verificar pago aprobado
     await this.paymentsService.validatePagoAprobado(dto.reference, dto.planId);
