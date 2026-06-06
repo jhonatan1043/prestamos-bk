@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TipoGasto } from '@prisma/client';
 import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { IGastoRepository } from '../domain/repositories/gasto.repository';
 import { Gasto } from '../domain/entities/gasto.entity';
@@ -38,7 +39,7 @@ export class PrismaGastoRepository implements IGastoRepository {
         descripcion: gasto.descripcion,
         monto: gasto.monto,
         fecha: gasto.fecha,
-        categoria: gasto.categoria,
+        categoria: gasto.categoria as TipoGasto,
         usuarioId: gasto.usuarioId,
       },
     });
@@ -59,7 +60,7 @@ export class PrismaGastoRepository implements IGastoRepository {
         descripcion: data.descripcion,
         monto: data.monto,
         fecha: data.fecha,
-        categoria: data.categoria,
+        categoria: data.categoria as TipoGasto | undefined,
         usuarioId: data.usuarioId,
       },
     });

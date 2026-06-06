@@ -19,6 +19,7 @@ import { ServiciosExternosModule } from './modules/servicios-externos/servicios-
 import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
 import { TenantsModule }      from './modules/tenants/tenants.module';
 import { PaymentsModule }     from './modules/payments/payments.module';
+import { ReportesModule }     from './modules/reportes/reportes.module';
 import { HealthController }   from './health.controller';
 
 @Module({
@@ -39,6 +40,7 @@ import { HealthController }   from './health.controller';
     SuscripcionesModule,
     TenantsModule,
     PaymentsModule,
+    ReportesModule,
   ],
   controllers: [HealthController],
   providers: [
