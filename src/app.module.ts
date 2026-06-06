@@ -3,6 +3,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TenantModule } from './common/tenant/tenant.module';
 import { TenantInterceptor } from './common/tenant/tenant.interceptor';
+import { MailModule } from './common/mail/mail.module';
 import { SuscripcionActivaInterceptor } from './common/interceptors/suscripcion-activa.interceptor';
 import { PrismaService } from './common/prisma/prisma.service';
 import { ClientesModule } from './modules/clientes/clientes.module';
@@ -24,6 +25,7 @@ import { HealthController }   from './health.controller';
   imports: [
     ConfigModule.forRoot(),
     TenantModule,       // ← global: provee TenantContextService y TenantPrismaService
+    MailModule,         // ← global: provee MailService para envío de correos
     AuthModule,
     ClientesModule,
     UserModule,

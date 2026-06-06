@@ -1,5 +1,6 @@
-import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
+import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ISuscripcionRepository } from '../domain/repositories/suscripcion.repository';
 import type { IPlanRepository } from '../domain/repositories/plan.repository';
@@ -9,12 +10,15 @@ import { PaymentsService } from '../../payments/application/payments.service';
 
 @Injectable()
 export class SuscripcionService {
+  private readonly logger = new Logger(SuscripcionService.name);
+
   constructor(
     @Inject('ISuscripcionRepository')
     private readonly suscripcionRepository: ISuscripcionRepository,
     @Inject('IPlanRepository')
     private readonly planRepository: IPlanRepository,
     private readonly tenantCtx: TenantContextService,
+    private readonly tenantPrisma: TenantPrismaService,   // ← esquema del tenant
     private readonly paymentsService: PaymentsService,
     private readonly mainPrisma: PrismaService,
   ) {}
@@ -55,26 +59,77 @@ export class SuscripcionService {
     return id;
   }
 
+  /**
+   * Sincroniza la suscripción al ESQUEMA DEL TENANT para que LimitesService
+   * pueda leerla sin depender de tenantId en el JWT.
+   *
+   * Cancela la anterior en el esquema del tenant y crea la nueva.
+   * Falla silenciosamente (no interrumpe el flujo principal).
+   */
+  private async sincronizarEnEsquemaTenant(
+    tenantId: number,
+    planId:   number,
+    fechaInicio: Date,
+    fechaFin:    Date | undefined,
+  ): Promise<void> {
+    try {
+      // Cancelar suscripción activa anterior en el esquema del tenant
+      const anteriorTenant = await this.tenantPrisma.suscripcion.findFirst({
+        where:   { estado: 'ACTIVA' },
+        orderBy: { fechaInicio: 'desc' },
+      });
+      if (anteriorTenant) {
+        await this.tenantPrisma.suscripcion.update({
+          where: { id: anteriorTenant.id },
+          data:  { estado: 'CANCELADA' },
+        });
+      }
+
+      // Crear nueva suscripción en el esquema del tenant
+      await this.tenantPrisma.suscripcion.create({
+        data: {
+          tenantId,
+          planId,
+          fechaInicio,
+          fechaFin:  fechaFin ?? null,
+          estado:    'ACTIVA',
+        },
+      });
+
+      this.logger.log(`Suscripción sincronizada en esquema del tenant (planId=${planId})`);
+    } catch (err: any) {
+      // No interrumpir el flujo principal — la fuente de verdad es el esquema principal
+      this.logger.warn(`No se pudo sincronizar suscripción en esquema del tenant: ${err.message}`);
+    }
+  }
+
   async activar(dto: CreateSuscripcionDto) {
-    const tenantId = await this.resolverTenantId();
+    const tenantId   = await this.resolverTenantId();
+    const fechaInicio = new Date(dto.fechaInicio);
+    const fechaFin    = dto.fechaFin ? new Date(dto.fechaFin) : undefined;
 
     const plan = await this.planRepository.findById(dto.planId);
-    if (!plan)       throw new NotFoundException('Plan no encontrado');
+    if (!plan)        throw new NotFoundException('Plan no encontrado');
     if (!plan.activo) throw new ConflictException('El plan seleccionado no está activo');
 
-    // Cancelar suscripción activa anterior de este tenant
+    // Cancelar suscripción activa anterior en esquema principal
     const actual = await this.suscripcionRepository.findActiva(tenantId);
     if (actual) {
       await this.suscripcionRepository.update(actual.id, { estado: 'CANCELADA' });
     }
 
-    return this.suscripcionRepository.create({
+    const nueva = await this.suscripcionRepository.create({
       tenantId,
-      planId:      dto.planId,
-      fechaInicio: new Date(dto.fechaInicio),
-      fechaFin:    dto.fechaFin ? new Date(dto.fechaFin) : undefined,
-      estado:      'ACTIVA',
+      planId:  dto.planId,
+      fechaInicio,
+      fechaFin,
+      estado: 'ACTIVA',
     });
+
+    // Sincronizar en el esquema del tenant (para LimitesService sin tenantId)
+    await this.sincronizarEnEsquemaTenant(tenantId, dto.planId, fechaInicio, fechaFin);
+
+    return nueva;
   }
 
   async findActiva() {
@@ -138,14 +193,17 @@ export class SuscripcionService {
 
     const nueva = await this.suscripcionRepository.create({
       tenantId,
-      planId:      dto.planId,
+      planId:  dto.planId,
       fechaInicio,
-      fechaFin,    // undefined → Prisma guarda null → no vence
-      estado:      'ACTIVA',
+      fechaFin,
+      estado:  'ACTIVA',
     });
 
     // 5. Vincular pago al tenant (evitar doble uso)
     await this.paymentsService.vincularTenant(dto.reference, tenantId);
+
+    // 6. Sincronizar en el esquema del tenant (para LimitesService sin tenantId)
+    await this.sincronizarEnEsquemaTenant(tenantId, dto.planId, fechaInicio, fechaFin);
 
     return nueva;
   }
