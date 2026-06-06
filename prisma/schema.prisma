@@ -18,6 +18,15 @@ enum TipoPrestamo {
   SOBRE_SALDO
 }
 
+enum TipoGasto {
+  OPERATIVO       // gastos de operación diaria
+  PERSONAL        // salarios y comisiones
+  ADMINISTRATIVO  // papelería, servicios, etc.
+  FINANCIERO      // costos financieros, intereses pagados
+  JURIDICO        // honorarios legales, cobro judicial
+  OTROS
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   nombre    String
@@ -65,19 +74,21 @@ model Cliente {
 }
 
 model Prestamo {
-  id           Int          @id @default(autoincrement())
-  codigo       String       @unique
-  monto        Decimal      @db.Decimal(12, 2)
-  tasa         Float
-  plazoDias    Int
-  tipoPlazo    TipoPlazo    @default(DIA)
-  fechaInicio  DateTime     @db.Timestamp(3)
-  estadoId     Int
-  clienteId    Int
-  usuarioId    Int
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  tipoPrestamo TipoPrestamo @default(FIJO)
+  id                Int          @id @default(autoincrement())
+  codigo            String       @unique
+  monto             Decimal      @db.Decimal(12, 2)
+  tasa              Float
+  plazoDias         Int
+  tipoPlazo         TipoPlazo    @default(DIA)
+  fechaInicio       DateTime     @db.Timestamp(3)
+  estadoId          Int
+  clienteId         Int
+  usuarioId         Int
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  tipoPrestamo      TipoPrestamo @default(FIJO)
+  // ── Campos contables ─────────────────────────────────────────────────────
+  totalConIntereses Decimal?     @db.Decimal(12, 2) // capital + interés total esperado
 
   // Relaciones
   estado  Estado  @relation(fields: [estadoId], references: [id], onUpdate: Cascade, onDelete: Restrict)
@@ -89,11 +100,15 @@ model Prestamo {
 }
 
 model Pago {
-  id         Int      @id @default(autoincrement())
-  prestamoId Int
-  fecha      DateTime @db.Timestamp(3)
-  monto      Decimal  @db.Decimal(12, 2)
-  estadoId   Int
+  id             Int      @id @default(autoincrement())
+  prestamoId     Int
+  fecha          DateTime @db.Timestamp(3)
+  monto          Decimal  @db.Decimal(12, 2)
+  estadoId       Int
+  // ── Campos contables ───────────────────────────────────────────────────
+  capitalAbonado Decimal? @db.Decimal(12, 2)  // porción que reduce el saldo del capital
+  interesAbonado Decimal? @db.Decimal(12, 2)  // porción que corresponde a intereses
+  saldoCapital   Decimal? @db.Decimal(12, 2)  // saldo pendiente de capital tras este pago
 
   // Relaciones
   prestamo Prestamo @relation(fields: [prestamoId], references: [id], onUpdate: Cascade, onDelete: Restrict)
@@ -115,11 +130,11 @@ model Estado {
 
 
 model Gasto {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   descripcion String
-  monto       Decimal  @db.Decimal(12, 2)
-  fecha       DateTime @db.Timestamp(3)
-  categoria   String
+  monto       Decimal   @db.Decimal(12, 2)
+  fecha       DateTime  @db.Timestamp(3)
+  categoria   TipoGasto @default(OTROS)
   active      Boolean  @default(true)
   usuarioId   Int
   createdAt   DateTime @default(now())

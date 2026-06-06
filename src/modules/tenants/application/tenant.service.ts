@@ -13,6 +13,7 @@ import { CreateTenantDto }     from './dto/create-tenant.dto';
 import { UpdateTenantDto }     from './dto/update-tenant.dto';
 import { CreatePagoTenantDto } from './dto/create-pago-tenant.dto';
 import { PaymentsService }     from '../../payments/application/payments.service';
+import { MailService }         from '../../../common/mail/mail.service';
 
 @Injectable()
 export class TenantService {
@@ -22,8 +23,9 @@ export class TenantService {
     @Inject('ITenantRepository')
     private readonly repo: ITenantRepository,
     private readonly provisioner: SchemaProvisionerService,
-    private readonly prisma: PrismaService,         // esquema principal para suscripciones
+    private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
+    private readonly mailService: MailService,
   ) {}
 
   // ─── Tenants ──────────────────────────────────────────────────────────────
@@ -118,6 +120,16 @@ export class TenantService {
       include: { plan: true },
     });
 
+    // Enviar credenciales por correo al email del nuevo admin
+    // (falla silenciosamente — no interrumpe el registro si el correo no llega)
+    await this.mailService.enviarCredencialesAdmin({
+      destinatario:  dto.email,
+      nombreEmpresa: tenant.nombre,
+      emailAdmin:    adminUser.email,
+      passwordAdmin: adminUser.password,
+      planNombre:    suscripcion.plan.nombre,
+    });
+
     return {
       tenant,
       suscripcion: {
@@ -134,7 +146,7 @@ export class TenantService {
         email:    adminUser.email,
         password: adminUser.password,
         role:     adminUser.role,
-        nota:     'Guarda esta contraseña, no se volverá a mostrar.',
+        nota:     'Las credenciales también fueron enviadas al correo registrado.',
       },
     };
   }

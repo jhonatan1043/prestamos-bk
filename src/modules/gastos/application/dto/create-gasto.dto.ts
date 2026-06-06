@@ -1,5 +1,6 @@
-import { IsString, IsNumber, IsDateString, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNumber, IsDateString, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { TipoGasto } from '@prisma/client';
 
 export class CreateGastoDto {
   @ApiProperty({ example: 'Compra de materiales' })
@@ -15,10 +16,13 @@ export class CreateGastoDto {
   @IsDateString()
   fecha: Date;
 
-  @ApiProperty({ example: 'Materiales' })
-  @IsString()
-  @IsNotEmpty()
-  categoria: string;
+  @ApiProperty({
+    enum: TipoGasto,
+    example: TipoGasto.OPERATIVO,
+    description: 'OPERATIVO | PERSONAL | ADMINISTRATIVO | FINANCIERO | JURIDICO | OTROS',
+  })
+  @IsEnum(TipoGasto)
+  categoria: TipoGasto;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
