@@ -13,21 +13,52 @@ export interface CredencialesAdminEmail {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  /** Crea un transporter probando los puertos más comunes en orden */
-  private readonly transporter = nodemailer.createTransport({
-    host:             process.env.MAIL_HOST   ?? 'mail.iatechsabana.online',
-    port:             Number(process.env.MAIL_PORT ?? 465),
-    secure:           process.env.MAIL_SECURE !== 'false',  // true por defecto (puerto 465 SSL)
-    auth: {
-      user: process.env.MAIL_USER ?? '',
-      pass: process.env.MAIL_PASS ?? '',
-    },
-    tls: {
-      rejectUnauthorized: false,   // tolera certificados autofirmados en hosting compartido
-    },
-    connectionTimeout: 10_000,
-    greetingTimeout:   10_000,
-  });
+  /**
+   * Transporter lazy — se instancia al primer uso para que las variables
+   * de entorno ya estén cargadas por ConfigModule antes de crear el socket.
+   *
+   * Puerto 587 + secure:false → nodemailer activa STARTTLS automáticamente.
+   * Puerto 465 + secure:true  → SSL directo (cambiar MAIL_PORT y MAIL_SECURE en .env si es necesario).
+   */
+  private _transporter: nodemailer.Transporter | null = null;
+
+  private get transporter(): nodemailer.Transporter {
+    if (!this._transporter) {
+      const port   = Number(process.env.MAIL_PORT   ?? 587);
+      const secure = process.env.MAIL_SECURE === 'true'; // false por defecto → STARTTLS en 587
+
+      this._transporter = nodemailer.createTransport({
+        host: process.env.MAIL_HOST ?? 'mail.iatechsabana.online',
+        port,
+        secure,
+        auth: {
+          user: process.env.MAIL_USER ?? '',
+          pass: process.env.MAIL_PASS ?? '',
+        },
+        tls: {
+          rejectUnauthorized: false, // tolera certificados autofirmados en cPanel
+        },
+        connectionTimeout: 15_000,
+        greetingTimeout:   10_000,
+        socketTimeout:     30_000,
+      });
+
+      this.logger.log(`SMTP configurado → ${process.env.MAIL_HOST}:${port} secure=${secure}`);
+    }
+    return this._transporter;
+  }
+
+  // ── Diagnóstico: verifica la conexión SMTP al arrancar ──────────────────
+
+  /** Llámalo desde el módulo raíz (onModuleInit) para confirmar que el SMTP responde */
+  async verificarConexion(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      this.logger.log('✅ Conexión SMTP verificada correctamente');
+    } catch (err: any) {
+      this.logger.warn(`⚠️  SMTP no disponible al arrancar (el correo fallará): ${err.message}`);
+    }
+  }
 
   // ── Envío de credenciales al crear una empresa ───────────────────────────
 
