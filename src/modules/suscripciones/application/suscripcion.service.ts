@@ -1,6 +1,5 @@
 import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
-import { TenantPrismaService } from '../../../common/tenant/tenant-prisma.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ISuscripcionRepository } from '../domain/repositories/suscripcion.repository';
 import type { IPlanRepository } from '../domain/repositories/plan.repository';
@@ -8,6 +7,10 @@ import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
 import { RenovarSuscripcionDto } from './dto/renovar-suscripcion.dto';
 import { PaymentsService } from '../../payments/application/payments.service';
 
+/**
+ * Gestiona suscripciones operando ÚNICAMENTE sobre el esquema principal (tst).
+ * No hay copia en el schema del tenant — fuente de verdad única.
+ */
 @Injectable()
 export class SuscripcionService {
   private readonly logger = new Logger(SuscripcionService.name);
@@ -18,7 +21,6 @@ export class SuscripcionService {
     @Inject('IPlanRepository')
     private readonly planRepository: IPlanRepository,
     private readonly tenantCtx: TenantContextService,
-    private readonly tenantPrisma: TenantPrismaService,   // ← esquema del tenant
     private readonly paymentsService: PaymentsService,
     private readonly mainPrisma: PrismaService,
   ) {}
@@ -37,7 +39,7 @@ export class SuscripcionService {
 
     // Fallback: buscar por schemaName en el esquema principal
     const schemaName = this.tenantCtx.getSchema();
-    const mainSchema = process.env.MAIN_SCHEMA ?? 'tst';
+    const mainSchema = process.env.MAIN_SCHEMA ?? 'master';
     if (!schemaName || schemaName === mainSchema) {
       throw new ConflictException('No hay tenant activo en el contexto');
     }
@@ -57,50 +59,6 @@ export class SuscripcionService {
     const id = this.tenantCtx.getTenantId();
     if (!id) throw new ConflictException('No hay tenant activo en el contexto');
     return id;
-  }
-
-  /**
-   * Sincroniza la suscripción al ESQUEMA DEL TENANT para que LimitesService
-   * pueda leerla sin depender de tenantId en el JWT.
-   *
-   * Cancela la anterior en el esquema del tenant y crea la nueva.
-   * Falla silenciosamente (no interrumpe el flujo principal).
-   */
-  private async sincronizarEnEsquemaTenant(
-    tenantId: number,
-    planId:   number,
-    fechaInicio: Date,
-    fechaFin:    Date | undefined,
-  ): Promise<void> {
-    try {
-      // Cancelar suscripción activa anterior en el esquema del tenant
-      const anteriorTenant = await this.tenantPrisma.suscripcion.findFirst({
-        where:   { estado: 'ACTIVA' },
-        orderBy: { fechaInicio: 'desc' },
-      });
-      if (anteriorTenant) {
-        await this.tenantPrisma.suscripcion.update({
-          where: { id: anteriorTenant.id },
-          data:  { estado: 'CANCELADA' },
-        });
-      }
-
-      // Crear nueva suscripción en el esquema del tenant
-      await this.tenantPrisma.suscripcion.create({
-        data: {
-          tenantId,
-          planId,
-          fechaInicio,
-          fechaFin:  fechaFin ?? null,
-          estado:    'ACTIVA',
-        },
-      });
-
-      this.logger.log(`Suscripción sincronizada en esquema del tenant (planId=${planId})`);
-    } catch (err: any) {
-      // No interrumpir el flujo principal — la fuente de verdad es el esquema principal
-      this.logger.warn(`No se pudo sincronizar suscripción en esquema del tenant: ${err.message}`);
-    }
   }
 
   async activar(dto: CreateSuscripcionDto) {
@@ -125,9 +83,6 @@ export class SuscripcionService {
       fechaFin,
       estado: 'ACTIVA',
     });
-
-    // Sincronizar en el esquema del tenant (para LimitesService sin tenantId)
-    await this.sincronizarEnEsquemaTenant(tenantId, dto.planId, fechaInicio, fechaFin);
 
     return nueva;
   }
@@ -201,9 +156,6 @@ export class SuscripcionService {
 
     // 5. Vincular pago al tenant (evitar doble uso)
     await this.paymentsService.vincularTenant(dto.reference, tenantId);
-
-    // 6. Sincronizar en el esquema del tenant (para LimitesService sin tenantId)
-    await this.sincronizarEnEsquemaTenant(tenantId, dto.planId, fechaInicio, fechaFin);
 
     return nueva;
   }
