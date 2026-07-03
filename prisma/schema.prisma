@@ -43,6 +43,7 @@ model User {
   rutas     Ruta[]    @relation("RutaCobrador")
   clientes  Cliente[] @relation("ClienteUsuario")
   auditLogs AuditLog[]
+  ventas    Venta[]
 
   @@map("User")
 }
@@ -64,9 +65,10 @@ model Cliente {
   fechaNacimiento    DateTime? @db.Date
 
   // Relaciones
-  sector   Ruta   @relation(fields: [sectorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  usuario  User?  @relation("ClienteUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  sector    Ruta    @relation(fields: [sectorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  usuario   User?   @relation("ClienteUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: SetNull)
   prestamos Prestamo[]
+  ventas    Venta[]
 
   rutas    ClienteRuta[] // Relación M:N con Ruta
 
@@ -122,8 +124,10 @@ model Estado {
   nombre String @unique
 
   // Relaciones
-  prestamos Prestamo[]
-  pagos     Pago[]
+  prestamos  Prestamo[]
+  pagos      Pago[]
+  ventas     Venta[]
+  cuotasVenta CuotaVenta[]
 
   @@map("Estado")
 }
@@ -310,6 +314,112 @@ model ClienteRuta {
   @@unique([clienteId, rutaId], map: "_ClienteToRuta_AB_unique")
   @@index([rutaId], map: "_ClienteToRuta_B_index")
   @@map("_ClienteToRuta")
+}
+
+// ─── Módulo de Mercancía ──────────────────────────────────────────────────────
+
+model Proveedor {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  contacto  String?
+  telefono  String?
+  email     String?
+  direccion String?
+  notas     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productos Producto[]
+
+  @@map("Proveedor")
+}
+
+model CategoriaProducto {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  productos Producto[]
+
+  @@map("CategoriaProducto")
+}
+
+model Producto {
+  id           Int     @id @default(autoincrement())
+  codigo       String  @unique
+  nombre       String
+  descripcion  String?
+  precioCompra Decimal @db.Decimal(12, 2)
+  precioVenta  Decimal @db.Decimal(12, 2)
+  stock        Int     @default(0)
+  stockMinimo  Int     @default(0)
+  categoriaId  Int?
+  proveedorId  Int?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoria  CategoriaProducto? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  proveedor  Proveedor?         @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  itemsVenta ItemVenta[]
+
+  @@map("Producto")
+}
+
+model Venta {
+  id           Int       @id @default(autoincrement())
+  codigo       String    @unique
+  clienteId    Int
+  usuarioId    Int
+  fechaInicio  DateTime  @db.Timestamp(3)
+  totalVenta   Decimal   @db.Decimal(12, 2)
+  cuotaMonto   Decimal   @db.Decimal(12, 2)
+  numeroCuotas Int
+  tipoPlazo    TipoPlazo @default(DIA)
+  estadoId     Int
+  notas        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  usuario User    @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  estado  Estado  @relation(fields: [estadoId], references: [id], onDelete: Restrict)
+  items   ItemVenta[]
+  cuotas  CuotaVenta[]
+
+  @@map("Venta")
+}
+
+model ItemVenta {
+  id         Int     @id @default(autoincrement())
+  ventaId    Int
+  productoId Int
+  cantidad   Int
+  precioUnit Decimal @db.Decimal(12, 2)
+  subtotal   Decimal @db.Decimal(12, 2)
+
+  venta    Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+
+  @@map("ItemVenta")
+}
+
+model CuotaVenta {
+  id          Int      @id @default(autoincrement())
+  ventaId     Int
+  numeroCuota Int
+  fechaPago   DateTime @db.Timestamp(3)
+  monto       Decimal  @db.Decimal(12, 2)
+  estadoId    Int
+  pagadoEn    DateTime? @db.Timestamp(3)
+  createdAt   DateTime  @default(now())
+
+  venta  Venta  @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  estado Estado @relation(fields: [estadoId], references: [id], onDelete: Restrict)
+
+  @@map("CuotaVenta")
 }
 
 
