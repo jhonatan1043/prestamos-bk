@@ -15,7 +15,7 @@ export class TenantContextService {
   }
 
   getSchema(): string {
-    return this.storage.getStore()?.schemaName ?? (process.env.MAIN_SCHEMA ?? 'tst');
+    return this.storage.getStore()?.schemaName ?? (process.env.MAIN_SCHEMA ?? 'master');
   }
 
   getTenantId(): number | null {

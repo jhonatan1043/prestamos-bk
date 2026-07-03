@@ -41,6 +41,13 @@ export class TenantPrismaService implements OnModuleDestroy {
   // Suscripción y planes (se sembran en cada esquema al crear el tenant)
   get suscripcion() { return this.client.suscripcion; }
   get plan()        { return this.client.plan; }
+  // Módulo mercancía
+  get proveedor()          { return this.client.proveedor; }
+  get categoriaProducto()  { return this.client.categoriaProducto; }
+  get producto()           { return this.client.producto; }
+  get venta()              { return this.client.venta; }
+  get itemVenta()          { return this.client.itemVenta; }
+  get cuotaVenta()         { return this.client.cuotaVenta; }
 
   // ─── Métodos raw ──────────────────────────────────────────────────────────
   $executeRaw(query: TemplateStringsArray, ...values: any[]) {
@@ -52,8 +59,8 @@ export class TenantPrismaService implements OnModuleDestroy {
   $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: any[]): Promise<T> {
     return this.client.$queryRaw<T>(query, ...values);
   }
-  $transaction(fn: (tx: PrismaClient) => Promise<any>, options?: any) {
-    return this.client.$transaction(fn as any, options);
+  $transaction<T>(fn: (tx: PrismaClient) => Promise<T>, options?: any): Promise<T> {
+    return this.client.$transaction(fn as any, options) as Promise<T>;
   }
 
   async onModuleDestroy() {

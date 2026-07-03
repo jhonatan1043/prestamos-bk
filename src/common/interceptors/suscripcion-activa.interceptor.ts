@@ -7,14 +7,13 @@ import {
 } from '@nestjs/common';
 import { Observable, from, switchMap } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { TenantPrismaService } from '../tenant/tenant-prisma.service';
 
 /**
  * Interceptor de solo-lectura cuando el plan del tenant está vencido.
  *
- * Lee la suscripción del ESQUEMA PRINCIPAL (tst.Suscripcion) usando el
- * tenantId del JWT — que es la fuente de verdad para facturación/renovaciones.
- * Así funciona correctamente tanto en la suscripción inicial como tras renovar.
+ * FUENTE ÚNICA: consulta solo master.Suscripcion (esquema principal).
+ * Si el JWT trae tenantId=0 (JWT legado), resuelve el id por schemaName
+ * haciendo un lookup en master.Tenant — no depende del schema del tenant.
  *
  * Reglas:
  *  - Peticiones GET → siempre permitidas.
@@ -39,8 +38,7 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
   private static readonly WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly tenantPrisma: TenantPrismaService,
+    private readonly prisma: PrismaService,   // esquema principal — fuente única
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -53,7 +51,6 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
 
     // Rutas públicas (sin usuario autenticado) → pasar
     if (!req.user?.schemaName) return next.handle();
-    const tenantId: number = Number(req.user?.tenantId ?? 0);
 
     // Rutas exentas
     const path: string = req.path ?? req.url ?? '';
@@ -64,29 +61,35 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    return from(this.verificarSuscripcion(tenantId)).pipe(
+    const tenantId: number  = Number(req.user?.tenantId ?? 0);
+    const schemaName: string = req.user.schemaName;
+
+    return from(this.verificarSuscripcion(tenantId, schemaName)).pipe(
       switchMap(() => next.handle()),
     );
   }
 
-  private async verificarSuscripcion(tenantId: number): Promise<void> {
-    const filtroFechaOr = [{ fechaFin: null }, { fechaFin: { gt: new Date() } }];
-
-    // 1. Esquema principal con tenantId (fuente de verdad post-renovación)
-    if (tenantId > 0) {
-      const sus = await this.prisma.suscripcion.findFirst({
-        where: { tenantId, estado: 'ACTIVA', OR: filtroFechaOr },
+  private async verificarSuscripcion(tenantId: number, schemaName: string): Promise<void> {
+    // Resolver tenantId si viene como 0 en el JWT (JWT legado)
+    let resolvedId = tenantId;
+    if (!resolvedId && schemaName) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where:  { schemaName },
+        select: { id: true },
       });
-      if (sus) return; // ✅
+      resolvedId = tenant?.id ?? 0;
     }
 
-    // 2. Fallback: esquema del tenant (JWTs sin tenantId o tenantId=0)
-    try {
-      const sus = await this.tenantPrisma.suscripcion.findFirst({
-        where: { estado: 'ACTIVA', OR: filtroFechaOr },
+    if (resolvedId) {
+      const sus = await this.prisma.suscripcion.findFirst({
+        where: {
+          tenantId: resolvedId,
+          estado:   'ACTIVA',
+          OR: [{ fechaFin: null }, { fechaFin: { gt: new Date() } }],
+        },
       });
-      if (sus) return; // ✅
-    } catch { /* esquema no disponible */ }
+      if (sus) return; // ✅ Plan activo — permitir escritura
+    }
 
     throw new ForbiddenException({
       code:    'PLAN_VENCIDO',

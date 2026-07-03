@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function seedEstados() {
-  const estados = ['ACTIVO', 'BORRADO'];
+  const estados = ['ACTIVO', 'BORRADO', 'FINALIZADO', 'CANCELADO'];
   for (const nombre of estados) {
     const exists = await prisma.estado.findUnique({ where: { nombre } });
     if (!exists) {
