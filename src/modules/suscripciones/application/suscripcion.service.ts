@@ -137,9 +137,10 @@ export class SuscripcionService {
     }
 
     // 4. Crear nueva suscripción
-    // duracionDias === 0 → sin vencimiento (fechaFin null)
-    const duracion   = (plan as any).duracionDias ?? 30;
-    const fechaInicio = new Date();
+    // periodoAnual → 365 días; duracionDias === 0 → sin vencimiento
+    const baseDuracion = (plan as any).duracionDias ?? 30;
+    const duracion     = (dto.periodoAnual && baseDuracion > 0) ? 365 : baseDuracion;
+    const fechaInicio  = new Date();
     let   fechaFin: Date | undefined;
     if (duracion > 0) {
       fechaFin = new Date(fechaInicio);

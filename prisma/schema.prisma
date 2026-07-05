@@ -298,6 +298,8 @@ model WompiTransaccion {
   status        String    @default("PENDING")
   /// ID de transacción retornado por Wompi en el webhook
   wompiId       String?
+  /// true = plan anual (12 meses con 20% de descuento)
+  periodoAnual  Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
