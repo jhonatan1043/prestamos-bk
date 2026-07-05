@@ -33,7 +33,12 @@ export class PaymentsService {
       throw new BadRequestException('El plan es gratuito, no requiere pago');
     }
 
-    const amountInCents = Math.round(Number(plan.precio) * 100);
+    const precioBase    = Number(plan.precio);
+    const periodoAnual  = dto.periodoAnual ?? false;
+    const precioFinal   = periodoAnual
+      ? precioBase * 12 * 0.8   // anual: 12 meses con 20% de descuento
+      : precioBase;
+    const amountInCents = Math.round(precioFinal * 100);
     const currency      = this.wompi.currency;
     const reference     = this.wompi.generateReference();
     const integrityHash = this.wompi.calcularIntegrityHash(reference, amountInCents, currency);
@@ -48,6 +53,7 @@ export class PaymentsService {
         email:        dto.email,
         tenantNombre: dto.tenantNombre ?? null,
         status:       'PENDING',
+        periodoAnual,
       },
     });
 
