@@ -49,6 +49,40 @@ export class WompiService {
     return crypto.createHash('sha256').update(cadena).digest('hex');
   }
 
+  private get privateKey(): string {
+    return this.config.get<string>('WOMPI_PRIVATE_KEY') ?? '';
+  }
+
+  /**
+   * Consulta la API de Wompi para obtener el estado real de una transacción
+   * por referencia. Útil cuando el webhook no ha llegado todavía.
+   *
+   * Retorna { id, status } o null si no se encuentra / hay error.
+   */
+  async consultarTransaccionPorReferencia(
+    reference: string,
+  ): Promise<{ id: string; status: string } | null> {
+    const sandbox = this.publicKey.startsWith('pub_test_');
+    const baseUrl = sandbox
+      ? 'https://sandbox.wompi.co/v1'
+      : 'https://production.wompi.co/v1';
+
+    try {
+      const res = await fetch(
+        `${baseUrl}/transactions?reference=${encodeURIComponent(reference)}`,
+        { headers: { Authorization: `Bearer ${this.privateKey}` } },
+      );
+      if (!res.ok) return null;
+      const json = (await res.json()) as { data?: any[] };
+      const tx   = json?.data?.[0];
+      if (!tx) return null;
+      return { id: String(tx.id), status: String(tx.status ?? '').toUpperCase() };
+    } catch (err) {
+      this.logger.warn(`Error consultando API Wompi para ${reference}: ${err}`);
+      return null;
+    }
+  }
+
   /**
    * Verifica la firma del webhook enviado por Wompi.
    * Wompi envía el header X-Event-Checksum con:

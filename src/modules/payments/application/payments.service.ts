@@ -124,6 +124,28 @@ export class PaymentsService {
   async getStatus(reference: string) {
     const tx = await this.prisma.wompiTransaccion.findUnique({ where: { reference } });
     if (!tx) throw new NotFoundException(`Transacción "${reference}" no encontrada`);
+
+    // Si sigue PENDING, consultar la API de Wompi directamente (no esperar el webhook)
+    if (tx.status === 'PENDING') {
+      const liveTx = await this.wompi.consultarTransaccionPorReferencia(reference);
+      if (liveTx && liveTx.status !== 'PENDING') {
+        await this.prisma.wompiTransaccion.update({
+          where: { reference },
+          data:  { status: liveTx.status, wompiId: liveTx.id },
+        });
+        this.logger.log(`Status sincronizado desde Wompi API: ${reference} → ${liveTx.status}`);
+        return {
+          reference,
+          status:        liveTx.status,
+          planId:        tx.planId,
+          amountInCents: tx.amountInCents,
+          currency:      tx.currency,
+          tenantId:      tx.tenantId,
+          wompiId:       liveTx.id,
+        };
+      }
+    }
+
     return {
       reference:     tx.reference,
       status:        tx.status,
