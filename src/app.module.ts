@@ -23,6 +23,7 @@ import { ReportesModule }     from './modules/reportes/reportes.module';
 import { ProveedoresModule }  from './modules/proveedores/proveedores.module';
 import { ProductosModule }    from './modules/productos/productos.module';
 import { VentasModule }       from './modules/ventas/ventas.module';
+import { EmpenosModule }      from './modules/empenos/empenos.module';
 import { HealthController }   from './health.controller';
 
 @Module({
@@ -47,6 +48,7 @@ import { HealthController }   from './health.controller';
     ProveedoresModule,
     ProductosModule,
     VentasModule,
+    EmpenosModule,
   ],
   controllers: [HealthController],
   providers: [
