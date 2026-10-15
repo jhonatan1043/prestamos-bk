@@ -53,6 +53,12 @@ describe('EmpenoReportesService', () => {
       .rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('el admin ve los movimientos de empeños eliminados (reporte de Eliminaciones)', async () => {
+    await svc.movimientos({ desde: new Date('2026-01-01'), hasta: new Date('2026-01-31'), tipo: 'ELIMINACION' }, admin);
+    const where = prisma.client.movimientoEmpeno.findMany.mock.calls[0][0].where;
+    expect(where.empeno).not.toHaveProperty('deletedAt');
+  });
+
   it('movimientos de un cobrador filtra por sus empeños', async () => {
     await svc.movimientos({ desde: new Date('2026-01-01'), hasta: new Date('2026-01-31') }, cobrador);
     const where = prisma.client.movimientoEmpeno.findMany.mock.calls[0][0].where;

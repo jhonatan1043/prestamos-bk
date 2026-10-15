@@ -112,7 +112,27 @@ export class EmpenosService {
     const tipoPlazo = dto.tipoPlazo ?? 'MES';
     const { articulo, ...resto } = dto;
 
-    const creado = await this.db.$transaction(async (tx: any) => {
+    // Dos registros simultáneos pueden calcular el mismo código: se reintenta con el siguiente
+    let creado: any;
+    for (let intento = 1; ; intento++) {
+      try {
+        creado = await this.crearEnTransaccion(dto, actor, articulo, resto, tipoPlazo, fechaIngreso);
+        break;
+      } catch (err: any) {
+        const choqueCodigo = err?.code === 'P2002' && JSON.stringify(err?.meta?.target ?? '').includes('codigo');
+        if (!choqueCodigo || intento >= 3) throw err;
+      }
+    }
+
+    await this.audit.log(actor.id, AuditAction.EMPENO_CREAR, 'Empeno', creado.id,
+      `Empeño ${creado.codigo} — cliente #${dto.clienteId} — monto ${dto.montoPrestado}`);
+    return this.obtener(creado.id, actor);
+  }
+
+  private crearEnTransaccion(
+    dto: CreateEmpenoDto, actor: Actor, articulo: any, resto: any, tipoPlazo: 'DIA' | 'SEMANA' | 'MES', fechaIngreso: Date,
+  ): Promise<any> {
+    return this.db.$transaction(async (tx: any) => {
       const ultimo = await tx.empeno.findFirst({ orderBy: { id: 'desc' }, select: { codigo: true } });
       const empeno = await tx.empeno.create({
         data: {
@@ -132,10 +152,6 @@ export class EmpenosService {
         `Ingreso de ${articulo.descripcion} por ${dto.montoPrestado}`);
       return empeno;
     });
-
-    await this.audit.log(actor.id, AuditAction.EMPENO_CREAR, 'Empeno', creado.id,
-      `Empeño ${creado.codigo} — cliente #${dto.clienteId} — monto ${dto.montoPrestado}`);
-    return this.obtener(creado.id, actor);
   }
 
   async actualizar(id: number, dto: UpdateEmpenoDto, actor: Actor) {

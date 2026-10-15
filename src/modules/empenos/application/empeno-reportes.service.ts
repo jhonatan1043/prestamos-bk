@@ -101,7 +101,8 @@ export class EmpenoReportesService {
     const movimientos = await this.db.movimientoEmpeno.findMany({
       where: {
         fecha:  { gte: desde, lte: hasta },
-        empeno: this.empenos.whereVisible(actor),
+        // El admin también ve los de empeños eliminados (reporte de Eliminaciones)
+        empeno: this.empenos.whereVisible(actor, { incluirEliminados: true }),
         ...(filtros.tipo ? { tipo: filtros.tipo } : {}),
       },
       include: {

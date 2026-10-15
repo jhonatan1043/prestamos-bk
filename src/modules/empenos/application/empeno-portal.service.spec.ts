@@ -14,7 +14,7 @@ describe('EmpenoPortalService', () => {
     mainPrisma   = crearPrismaFalso().client;
     svc = new EmpenoPortalService(mainPrisma, tenantPrisma);
     mainPrisma.tenant.findUnique.mockResolvedValue({ id: 3, schemaName: 'tenant_x' });
-    tenantPrisma.client.cliente.findFirst.mockResolvedValue({ id: 10, nombres: 'Ana', apellidos: 'Pérez' });
+    tenantPrisma.client.cliente.findMany.mockResolvedValue([{ id: 10, nombres: 'Ana', apellidos: 'Pérez' }]);
     tenantPrisma.client.empeno.findMany.mockResolvedValue([
       empenoDb({ id: 1, codigoConsulta: 'ABC234' }),
       empenoDb({ id: 2, codigo: 'EMP-000002', codigoConsulta: 'ZZZ999' }),
@@ -33,6 +33,18 @@ describe('EmpenoPortalService', () => {
 
   it('código que no pertenece a ese cliente → 404', async () => {
     await expect(svc.consultar({ ...dto, codigoConsulta: 'QQQ111' }, '1.1.1.1')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('con clientes duplicados por identificación encuentra el del código', async () => {
+    tenantPrisma.client.cliente.findMany.mockResolvedValue([
+      { id: 10, nombres: 'Ana', apellidos: 'Pérez' },
+      { id: 11, nombres: 'Ana María', apellidos: 'Pérez' },
+    ]);
+    tenantPrisma.client.empeno.findMany.mockImplementation(({ where }) => Promise.resolve(
+      where.clienteId === 11 ? [empenoDb({ id: 7, clienteId: 11, codigoConsulta: 'KKK777' })] : [],
+    ));
+    const r = await svc.consultar({ ...dto, codigoConsulta: 'KKK777' }, '9.9.9.9');
+    expect(r.cliente.nombres).toBe('Ana María');
   });
 
   it('empresa inexistente → 404', async () => {

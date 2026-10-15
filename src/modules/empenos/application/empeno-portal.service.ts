@@ -43,18 +43,27 @@ export class EmpenoPortalService {
     if (!tenant) throw new NotFoundException(NO_ENCONTRADO);
 
     const db = this.tenantPrisma.forSchema(dto.schemaName);
-    const cliente = await db.cliente.findFirst({
+    // Puede haber más de un cliente activo con la misma identificación: se usa el
+    // que tenga un empeño con ese código de consulta
+    const clientes = await db.cliente.findMany({
       where:  { identificacion: dto.identificacion, active: true },
       select: { id: true, nombres: true, apellidos: true },
     });
+    let cliente: { id: number; nombres: string; apellidos: string } | null = null;
+    let empenos: any[] = [];
+    for (const c of clientes) {
+      const lista = await db.empeno.findMany({
+        where:   { clienteId: c.id, deletedAt: null },
+        include: { articulo: true, pagos: { where: { deletedAt: null } } },
+        orderBy: { fechaIngreso: 'desc' },
+      });
+      if (lista.some(e => e.codigoConsulta === dto.codigoConsulta)) {
+        cliente = c;
+        empenos = lista;
+        break;
+      }
+    }
     if (!cliente) throw new NotFoundException(NO_ENCONTRADO);
-
-    const empenos = await db.empeno.findMany({
-      where:   { clienteId: cliente.id, deletedAt: null },
-      include: { articulo: true, pagos: { where: { deletedAt: null } } },
-      orderBy: { fechaIngreso: 'desc' },
-    });
-    if (!empenos.some(e => e.codigoConsulta === dto.codigoConsulta)) throw new NotFoundException(NO_ENCONTRADO);
 
     return {
       cliente: { nombres: cliente.nombres, apellidos: cliente.apellidos },

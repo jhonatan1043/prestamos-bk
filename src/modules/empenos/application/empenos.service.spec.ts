@@ -127,6 +127,15 @@ describe('EmpenosService', () => {
       await expect(svc.actualizar(1, { fechaIngreso: '2999-01-01T00:00:00.000Z' }, admin)).rejects.toBeInstanceOf(BadRequestException);
     });
 
+    it('si el código EMP choca (creación simultánea) reintenta con el siguiente', async () => {
+      prisma.client.empeno.findFirst.mockResolvedValueOnce(null);
+      prisma.client.empeno.create
+        .mockRejectedValueOnce(Object.assign(new Error('unique'), { code: 'P2002', meta: { target: ['codigo'] } }))
+        .mockImplementation(({ data }) => Promise.resolve(empenoDb({ ...data, id: 1 })));
+      await svc.crear(dtoGeneral, admin);
+      expect(prisma.client.empeno.create).toHaveBeenCalledTimes(2);
+    });
+
     it('eliminar hace soft delete y audita', async () => {
       await svc.eliminar(1, admin);
       expect(prisma.client.empeno.update).toHaveBeenCalledWith(expect.objectContaining({

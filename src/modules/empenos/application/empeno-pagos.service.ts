@@ -39,10 +39,9 @@ export class EmpenoPagosService {
     if (dto.tipo === 'INTERES' && !dto.periodosCubiertos) {
       throw new BadRequestException('El refrendo requiere periodosCubiertos');
     }
-    const fecha = this.fechaPago(dto.fecha);
-
     const e = await this.operar(id, actor, async (tx, e) => {
       if (esFinal(e.estado)) throw new ConflictException('El artículo ya salió: no admite más pagos');
+      const fecha = this.fechaPago(dto.fecha, e.fechaIngreso);
       this.rechazarDuplicado(e, dto);
       const nuevo: PagoParaReplay = {
         id: ID_NUEVO, tipo: dto.tipo, monto: dto.monto, fecha, periodosCubiertos: dto.periodosCubiertos ?? 0,
@@ -83,7 +82,7 @@ export class EmpenoPagosService {
         ...actual,
         monto:             dto.monto ?? actual.monto,
         periodosCubiertos: dto.periodosCubiertos ?? actual.periodosCubiertos,
-        fecha:             dto.fecha ? this.fechaPago(dto.fecha) : actual.fecha,
+        fecha:             dto.fecha ? this.fechaPago(dto.fecha, e.fechaIngreso) : actual.fecha,
       };
       const nuevos = pagos.map(p => (p.id === pagoId ? editado : p));
       this.validar(e, nuevos);
@@ -158,10 +157,10 @@ export class EmpenoPagosService {
     });
   }
 
-  /** Pagos de un empeño vendido o adjudicado ya no se tocan. */
+  /** Con el artículo fuera (recuperado, vendido o adjudicado) los pagos ya no se tocan. */
   private exigirEditable(e: any) {
-    if (e.estado === 'VENDIDO' || e.estado === 'ADJUDICADO') {
-      throw new ConflictException('No se pueden modificar pagos de un empeño vendido o adjudicado');
+    if (esFinal(e.estado)) {
+      throw new ConflictException('El artículo ya salió: no se pueden modificar sus pagos');
     }
   }
 
@@ -198,6 +197,10 @@ export class EmpenoPagosService {
     }
 
     const cancelacion = pagos.find(p => p.tipo === 'CANCELACION');
+    const nuevoEstado = estado.cancelado ? 'RECUPERADO' : estadoEfectivo('ACTIVO', estado.fechaMaxima, new Date());
+    if (!estado.cancelado && nuevoEstado !== e.estado) {
+      await this.empenos.registrarMovimiento(tx, e.id, 'CAMBIO_ESTADO', e.usuarioId, `${e.estado} → ${nuevoEstado}`);
+    }
     await tx.empeno.update({
       where: { id: e.id },
       data: {
@@ -211,9 +214,12 @@ export class EmpenoPagosService {
     });
   }
 
-  private fechaPago(fecha?: string): Date {
+  private fechaPago(fecha: string | undefined, fechaIngreso: Date): Date {
     const f = fecha ? new Date(fecha) : new Date();
     if (f.getTime() > Date.now() + 60_000) throw new BadRequestException('La fecha del pago no puede ser futura');
+    if (f.getTime() < new Date(fechaIngreso).getTime()) {
+      throw new BadRequestException('La fecha del pago no puede ser anterior al ingreso del empeño');
+    }
     return f;
   }
 

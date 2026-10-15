@@ -91,22 +91,6 @@ describe('EmpenoPagosService', () => {
     expect(prisma.client.pagoEmpeno.update).not.toHaveBeenCalled();
   });
 
-  it('eliminar la cancelación reabre el empeño', async () => {
-    prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({
-      estado: 'RECUPERADO', fechaMaxima: new Date('2099-05-01'), fechaSalida: new Date('2026-02-10'), montoSalida: 1_100_000,
-      fechaIngreso: new Date(), periodosMaximos: 4,
-      pagos: [{ id: 5, tipo: 'CANCELACION', monto: 1_100_000, fecha: new Date(), periodosCubiertos: 0 }],
-    }));
-    await svc.eliminarPago(1, 5, admin);
-    expect(prisma.client.pagoEmpeno.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 5 }, data: expect.objectContaining({ deletedById: admin.id }),
-    }));
-    const data = updatesDeEmpeno()[0];
-    expect(data.estado).toBe('ACTIVO');
-    expect(data.fechaSalida).toBeNull();
-    expect(data.montoSalida).toBeNull();
-  });
-
   it('no se editan pagos de un empeño vendido → 409', async () => {
     prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({
       estado: 'VENDIDO', pagos: [{ id: 1, tipo: 'INTERES', monto: 50_000, fecha: new Date('2026-01-15'), periodosCubiertos: 1 }],
@@ -143,6 +127,27 @@ describe('EmpenoPagosService', () => {
     await expect(svc.registrarPago(1, { tipo: 'INTERES', monto: 50_000, periodosCubiertos: 1, fecha: '2026-01-15T00:00:00.000Z' }, admin))
       .rejects.toBeInstanceOf(ConflictException);
     expect(prisma.client.pagoEmpeno.create).not.toHaveBeenCalled();
+  });
+
+  it('no se editan ni eliminan pagos de un empeño RECUPERADO (artículo ya salió) → 409', async () => {
+    prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({
+      estado: 'RECUPERADO', pagos: [{ id: 5, tipo: 'CANCELACION', monto: 1_100_000, fecha: new Date('2026-02-10'), periodosCubiertos: 0 }],
+    }));
+    await expect(svc.eliminarPago(1, 5, admin)).rejects.toBeInstanceOf(ConflictException);
+    await expect(svc.editarPago(1, 5, { monto: 1 }, admin)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('un pago con fecha anterior al ingreso → 400', async () => {
+    await expect(svc.registrarPago(1, { tipo: 'INTERES', monto: 50_000, periodosCubiertos: 1, fecha: '2025-12-01T00:00:00.000Z' }, admin))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('si un pago cambia el estado (refrendo que saca de VENCIDO) queda el movimiento CAMBIO_ESTADO', async () => {
+    // Vencido el 2026-02-01; un refrendo de 3 periodos lo deja vigente hasta 2026-05-01 (+3) = 2026-08-01
+    prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({ estado: 'VENCIDO', periodosMaximos: 1, fechaMaxima: new Date('2026-02-01') }));
+    await svc.registrarPago(1, { tipo: 'INTERES', monto: 50_000 * 999, periodosCubiertos: 999 }, admin).catch(() => undefined);
+    const tipos = prisma.client.movimientoEmpeno.create.mock.calls.map((c: any) => c[0].data.tipo);
+    expect(tipos).toContain('CAMBIO_ESTADO');
   });
 
   it('liquidación a una fecha', async () => {
