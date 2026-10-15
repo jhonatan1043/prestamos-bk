@@ -5,6 +5,7 @@ import { TenantModule } from './common/tenant/tenant.module';
 import { TenantInterceptor } from './common/tenant/tenant.interceptor';
 import { MailModule } from './common/mail/mail.module';
 import { SuscripcionActivaInterceptor } from './common/interceptors/suscripcion-activa.interceptor';
+import { IdempotenciaInterceptor } from './common/interceptors/idempotencia.interceptor';
 import { PrismaService } from './common/prisma/prisma.service';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { GeolocalizacionModule } from './modules/geolocalizacion/geolocalizacion.module';
@@ -60,6 +61,10 @@ import { HealthController }   from './health.controller';
     {
       provide:  APP_INTERCEPTOR,
       useClass: SuscripcionActivaInterceptor,  // 2º: bloquea escrituras si el plan venció
+    },
+    {
+      provide:  APP_INTERCEPTOR,
+      useClass: IdempotenciaInterceptor,       // 3º: evita duplicados con X-Idempotency-Key
     },
   ],
 })

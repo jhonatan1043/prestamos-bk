@@ -566,3 +566,20 @@ model MovimientoEmpeno {
   @@index([empenoId, fecha])
   @@map("MovimientoEmpeno")
 }
+
+// ─── Idempotencia ────────────────────────────────────────────────────────────
+// Evita duplicados cuando la app reenvía una operación (p. ej. un pago hecho sin
+// conexión cuya respuesta se perdió). La clave la genera el cliente.
+
+model SolicitudIdempotente {
+  clave     String   @id
+  ruta      String
+  usuarioId Int?
+  estado    String   // EN_PROCESO | COMPLETADO
+  status    Int?
+  respuesta Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("SolicitudIdempotente")
+}
