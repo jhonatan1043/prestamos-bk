@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
+import { Roles, RolesGuard } from 'src/common/auth/roles.guard';
 import { SuscripcionService } from '../application/suscripcion.service';
 import { LimitesService } from '../application/limites.service';
 import { CreateSuscripcionDto } from '../application/dto/create-suscripcion.dto';
@@ -9,7 +10,7 @@ import { Suscripcion } from '../domain/entities/suscripcion.entity';
 
 @ApiTags('suscripciones')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('suscripciones')
 export class SuscripcionController {
   constructor(
@@ -18,7 +19,7 @@ export class SuscripcionController {
   ) {}
 
   @Post('activar')
-  @ApiOperation({ summary: 'Activar un plan (cancela el actual si existe)' })
+  @ApiOperation({ summary: 'Activar un plan gratuito (cancela el actual si existe)' })
   @ApiResponse({ status: 201, type: Suscripcion })
   activar(@Body() dto: CreateSuscripcionDto) {
     return this.suscripcionService.activar(dto);
@@ -33,10 +34,10 @@ export class SuscripcionController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Historial de suscripciones' })
+  @ApiOperation({ summary: 'Historial de suscripciones de la empresa actual' })
   @ApiResponse({ status: 200, type: [Suscripcion] })
   findAll() {
-    return this.suscripcionService.findAll();
+    return this.suscripcionService.findByTenant();
   }
 
   @Get('activa')
@@ -57,6 +58,7 @@ export class SuscripcionController {
     return this.limitesService.obtenerEstadoActual();
   }
 
+  @Roles('admin')
   @Delete(':id/cancelar')
   @ApiOperation({ summary: 'Cancelar una suscripción' })
   @ApiParam({ name: 'id', type: Number })

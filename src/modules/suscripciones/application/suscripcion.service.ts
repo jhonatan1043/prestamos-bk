@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, ForbiddenException, Logger } from '@nestjs/common';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ISuscripcionRepository } from '../domain/repositories/suscripcion.repository';
@@ -61,14 +61,36 @@ export class SuscripcionService {
     return id;
   }
 
+  /**
+   * Activa un plan GRATUITO para la empresa actual. Los planes de pago solo se
+   * activan con renovar() (pago Wompi aprobado) o por el superadmin vía
+   * POST /tenants/:id/plan. Las fechas se calculan aquí, no se aceptan del cliente.
+   */
   async activar(dto: CreateSuscripcionDto) {
-    const tenantId   = await this.resolverTenantId();
-    const fechaInicio = new Date(dto.fechaInicio);
-    const fechaFin    = dto.fechaFin ? new Date(dto.fechaFin) : undefined;
+    const tenantId = await this.resolverTenantId();
 
     const plan = await this.planRepository.findById(dto.planId);
     if (!plan)        throw new NotFoundException('Plan no encontrado');
     if (!plan.activo) throw new ConflictException('El plan seleccionado no está activo');
+    if (Number(plan.precio) > 0) {
+      throw new ForbiddenException('Los planes de pago se activan mediante un pago aprobado (POST /suscripciones/renovar)');
+    }
+
+    // Un plan gratuito con vencimiento (prueba) solo se puede usar una vez
+    const duracion = (plan as any).duracionDias ?? 0;
+    if (duracion > 0) {
+      const historial = await this.suscripcionRepository.findByTenant(tenantId);
+      if (historial.some(s => s.planId === plan.id)) {
+        throw new ConflictException('El periodo gratuito de este plan ya fue utilizado');
+      }
+    }
+
+    const fechaInicio = new Date();
+    let   fechaFin: Date | undefined;
+    if (duracion > 0) {
+      fechaFin = new Date(fechaInicio);
+      fechaFin.setDate(fechaFin.getDate() + duracion);
+    }
 
     // Cancelar suscripción activa anterior en esquema principal
     const actual = await this.suscripcionRepository.findActiva(tenantId);
@@ -104,8 +126,11 @@ export class SuscripcionService {
   }
 
   async cancelar(id: number) {
+    const tenantId    = await this.resolverTenantId();
     const suscripcion = await this.suscripcionRepository.findById(id);
-    if (!suscripcion) throw new NotFoundException('Suscripción no encontrada');
+    if (!suscripcion || suscripcion.tenantId !== tenantId) {
+      throw new NotFoundException('Suscripción no encontrada');
+    }
     return this.suscripcionRepository.update(id, { estado: 'CANCELADA' });
   }
 
@@ -122,8 +147,10 @@ export class SuscripcionService {
     // Usa resolverTenantId para manejar JWTs sin tenantId (busca por schemaName)
     const tenantId = await this.resolverTenantId();
 
-    // 1. Verificar pago aprobado
-    await this.paymentsService.validatePagoAprobado(dto.reference, dto.planId);
+    // 1. Verificar pago aprobado y reservarlo para este tenant (atómico: evita
+    //    que la misma referencia se use dos veces en peticiones simultáneas)
+    const pago = await this.paymentsService.validatePagoAprobado(dto.reference, dto.planId);
+    await this.paymentsService.reclamarPago(dto.reference, tenantId);
 
     // 2. Obtener el plan
     const plan = await this.planRepository.findById(dto.planId);
@@ -139,7 +166,8 @@ export class SuscripcionService {
     // 4. Crear nueva suscripción
     // periodoAnual → 365 días; duracionDias === 0 → sin vencimiento
     const baseDuracion = (plan as any).duracionDias ?? 30;
-    const duracion     = (dto.periodoAnual && baseDuracion > 0) ? 365 : baseDuracion;
+    // El periodo lo define lo que realmente se pagó, no lo que envía el cliente
+    const duracion     = (pago.periodoAnual && baseDuracion > 0) ? 365 : baseDuracion;
     const fechaInicio  = new Date();
     let   fechaFin: Date | undefined;
     if (duracion > 0) {
@@ -147,17 +175,12 @@ export class SuscripcionService {
       fechaFin.setDate(fechaFin.getDate() + duracion);
     }
 
-    const nueva = await this.suscripcionRepository.create({
+    return this.suscripcionRepository.create({
       tenantId,
       planId:  dto.planId,
       fechaInicio,
       fechaFin,
       estado:  'ACTIVA',
     });
-
-    // 5. Vincular pago al tenant (evitar doble uso)
-    await this.paymentsService.vincularTenant(dto.reference, tenantId);
-
-    return nueva;
   }
 }

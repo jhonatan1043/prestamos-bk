@@ -1,14 +1,17 @@
-import { Body, Controller, Get, Param, Post, Query, Res, HttpCode } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, HttpCode, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { TwilioService } from '../application/twilio.service';
 import { HacerLlamadaDto } from './dto/hacer-llamada.dto';
+import { JwtAuthGuard } from '../../auth/infrastructure/jwt-auth.guard';
+import { esNumeroPermitido, escaparXml } from '../application/twilio.service';
 
 @ApiTags('servicios-externos/twilio')
 @Controller('servicios-externos/twilio')
 export class TwilioController {
   constructor(private readonly twilioService: TwilioService) { }
 
+  @UseGuards(JwtAuthGuard)
   @Post('llamadas')
   @ApiOperation({ summary: 'Iniciar una llamada telefónica via Twilio' })
   @ApiBody({ type: HacerLlamadaDto })
@@ -18,6 +21,7 @@ export class TwilioController {
     return await this.twilioService.hacerLlamada(dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('llamadas/:sid')
   @ApiOperation({ summary: 'Obtener el estado de una llamada por SID' })
   @ApiParam({ name: 'sid', type: String, description: 'SID de la llamada en Twilio' })
@@ -53,8 +57,16 @@ export class TwilioController {
     res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
   }
 
+  // Los endpoints twiml/* los consume Twilio (sin JWT): el número se valida y se
+  // escapa para que no se puedan inyectar instrucciones TwiML.
   private _twimlResponse(tecnico: string, res: Response) {
-    const fromNumber = process.env.TWILIO_FROM_NUMBER ?? '';
+    res.setHeader('Content-Type', 'text/xml');
+    if (!esNumeroPermitido(tecnico ?? '')) {
+      res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+      return;
+    }
+    tecnico = escaparXml(tecnico);
+    const fromNumber = escaparXml(process.env.TWILIO_FROM_NUMBER ?? '');
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-MX" voice="alice">Por favor espere, estamos conectando con su cliente.</Say>

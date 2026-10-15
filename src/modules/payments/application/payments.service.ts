@@ -188,6 +188,20 @@ export class PaymentsService {
   }
 
   /**
+   * Reserva de forma atómica un pago aprobado y aún sin usar para un tenant.
+   * Si otra petición ya lo usó, lanza excepción.
+   */
+  async reclamarPago(reference: string, tenantId: number): Promise<void> {
+    const { count } = await this.prisma.wompiTransaccion.updateMany({
+      where: { reference, status: 'APPROVED', tenantId: null },
+      data:  { tenantId },
+    });
+    if (count !== 1) {
+      throw new BadRequestException('Esta referencia de pago ya fue utilizada');
+    }
+  }
+
+  /**
    * Vincula una transacción aprobada con el tenant recién creado.
    */
   async vincularTenant(reference: string, tenantId: number): Promise<void> {
@@ -208,4 +222,5 @@ interface WompiTransaccion {
   email:         string;
   status:        string;
   tenantId:      number | null;
+  periodoAnual:  boolean;
 }

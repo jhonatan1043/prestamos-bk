@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nes
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 import { Public } from 'src/common/decorators/public.decorator';
+import { RolesGuard, SuperAdmin } from 'src/common/auth/roles.guard';
 import { PlanService } from '../application/plan.service';
 import { CreatePlanDto } from '../application/dto/create-plan.dto';
 import { UpdatePlanDto } from '../application/dto/update-plan.dto';
@@ -9,11 +10,12 @@ import { Plan } from '../domain/entities/plan.entity';
 
 @ApiTags('suscripciones/planes')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('suscripciones/planes')
 export class PlanController {
   constructor(private readonly planService: PlanService) {}
 
+  @SuperAdmin()
   @Post()
   @ApiOperation({ summary: 'Crear un plan' })
   @ApiResponse({ status: 201, type: Plan })
@@ -45,6 +47,7 @@ export class PlanController {
     return this.planService.findById(+id);
   }
 
+  @SuperAdmin()
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar plan' })
   @ApiParam({ name: 'id', type: Number })
@@ -53,6 +56,7 @@ export class PlanController {
     return this.planService.update(+id, dto);
   }
 
+  @SuperAdmin()
   @Delete(':id')
   @ApiOperation({ summary: 'Desactivar plan' })
   @ApiParam({ name: 'id', type: Number })

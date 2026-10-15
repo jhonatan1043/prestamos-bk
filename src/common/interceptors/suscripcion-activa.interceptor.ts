@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable, from, switchMap } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { esSuperAdmin } from '../auth/roles';
 
 /**
  * Interceptor de solo-lectura cuando el plan del tenant está vencido.
@@ -51,6 +52,9 @@ export class SuscripcionActivaInterceptor implements NestInterceptor {
 
     // Rutas públicas (sin usuario autenticado) → pasar
     if (!req.user?.schemaName) return next.handle();
+
+    // El superadmin de la plataforma no tiene suscripción propia
+    if (esSuperAdmin(req.user)) return next.handle();
 
     // Rutas exentas
     const path: string = req.path ?? req.url ?? '';

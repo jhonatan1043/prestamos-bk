@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { UserService } from '../application/user.service';
 import { CreateUserDto } from '../application/dto/create-user.dto';
 import { UpdateUserDto } from '../application/dto/update-user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { User } from '../domain/entities/user.entity';
+import { Roles, RolesGuard } from 'src/common/auth/roles.guard';
 import { JwtAuthGuard } from 'src/modules/auth/infrastructure/jwt-auth.guard';
 
 @ApiTags('users')
@@ -13,7 +14,8 @@ export class UserController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @ApiOperation({ summary: 'Crear usuario en el esquema del tenant autenticado' })
   @ApiResponse({ status: 201, description: 'Usuario creado' })
   @ApiResponse({ status: 402, description: 'Límite de usuarios del plan excedido' })
@@ -45,13 +47,14 @@ export class UserController {
   @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
   @UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
   @ApiOperation({ summary: 'Actualizar usuario' })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.userService.update(+id, dto);
+  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.userService.update(+id, dto, req.user);
   }
 
   @Delete(':id')
   @ApiBearerAuth() // 🔑 Swagger muestra el candado y permite poner el token
-  @UseGuards(JwtAuthGuard) // 🔒 protege todas las rutas del controlador
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @ApiOperation({ summary: 'Eliminar usuario' })
   remove(@Param('id') id: string) {
     return this.userService.remove(+id);

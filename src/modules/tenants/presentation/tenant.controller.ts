@@ -12,12 +12,15 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/infrastructure/jwt-auth.guard';
 import { Public } from '../../../common/decorators/public.decorator';
+import { RolesGuard, SuperAdmin } from '../../../common/auth/roles.guard';
 import { TenantService } from '../application/tenant.service';
 import { CreateTenantDto } from '../application/dto/create-tenant.dto';
 import { UpdateTenantDto } from '../application/dto/update-tenant.dto';
 import { CreatePagoTenantDto } from '../application/dto/create-pago-tenant.dto';
 
-@UseGuards(JwtAuthGuard)
+// Todo lo que no sea @Public() es administración de la plataforma: solo superadmin.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@SuperAdmin()
 @Controller('tenants')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
@@ -37,12 +40,12 @@ export class TenantController {
 
   /**
    * GET /tenants  — PÚBLICO
-   * Lista todos los tenants con su plan asignado.
+   * Lista las empresas para la pantalla de selección (solo datos mínimos).
    */
   @Public()
   @Get()
   findAll() {
-    return this.tenantService.findAll();
+    return this.tenantService.findAllPublic();
   }
 
   /**

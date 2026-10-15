@@ -1,6 +1,42 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import Twilio from 'twilio';
 import { HacerLlamadaDto } from '../presentation/dto/hacer-llamada.dto';
+
+const E164 = /^\+[1-9]\d{1,14}$/;
+
+/**
+ * Número en formato E.164 y, si TWILIO_ALLOWED_PREFIXES está definido
+ * (ej: "+57,+593"), dentro de los prefijos permitidos. Evita fraude de
+ * llamadas a números internacionales o de tarifa especial.
+ */
+export function esNumeroPermitido(numero: string): boolean {
+  if (!E164.test(numero)) return false;
+  const prefijos = (process.env.TWILIO_ALLOWED_PREFIXES ?? '')
+    .split(',').map(p => p.trim()).filter(Boolean);
+  return prefijos.length === 0 || prefijos.some(p => numero.startsWith(p));
+}
+
+export function escaparXml(valor: string): string {
+  return valor.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]!));
+}
+
+/**
+ * Solo se aceptan URLs TwiML propias (/servicios-externos/twilio/twiml/*) en el
+ * host público de la API (API_PUBLIC_URL), o la URL por defecto del .env.
+ */
+function esTwimlUrlPermitida(url: string, porDefecto: string): boolean {
+  if (url === porDefecto) return true;
+  const base = process.env.API_PUBLIC_URL;
+  if (!base) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:'
+      && u.host === new URL(base).host
+      && u.pathname.startsWith('/servicios-externos/twilio/twiml/');
+  } catch {
+    return false;
+  }
+}
 
 @Injectable()
 export class TwilioService {
@@ -26,6 +62,16 @@ export class TwilioService {
 
   async hacerLlamada(dto: HacerLlamadaDto) {
     const twimlUrl = dto.twimlUrl ?? this.defaultTwimlUrl;
+    if (!esNumeroPermitido(dto.to)) {
+      throw new BadRequestException('Número de destino no permitido');
+    }
+    if (!esTwimlUrlPermitida(twimlUrl, this.defaultTwimlUrl)) {
+      throw new BadRequestException('twimlUrl no permitida');
+    }
+    const tecnico = new URL(twimlUrl).searchParams.get('tecnico');
+    if (tecnico !== null && !esNumeroPermitido(tecnico)) {
+      throw new BadRequestException('Número de conexión no permitido');
+    }
     this.logger.log(`📞 hacerLlamada → to=${dto.to} | twimlUrl=${twimlUrl}`);
     try {
       const llamada = await this.client.calls.create({

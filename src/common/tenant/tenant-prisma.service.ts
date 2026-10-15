@@ -18,7 +18,14 @@ export class TenantPrismaService implements OnModuleDestroy {
 
   /** Devuelve el PrismaClient correspondiente al esquema activo. */
   get client(): PrismaClient {
-    const schema = this.ctx.getSchema();
+    return this.forSchema(this.ctx.getSchema());
+  }
+
+  /**
+   * PrismaClient (cacheado) de un esquema concreto. Solo llamar con esquemas
+   * ya validados: cada esquema distinto abre su propio pool de conexiones.
+   */
+  forSchema(schema: string): PrismaClient {
     if (!this.clients.has(schema)) {
       const baseUrl = process.env.DATABASE_URL ?? '';
       const url = baseUrl.replace(/([?&])schema=[^&]*/, `$1schema=${schema}`);

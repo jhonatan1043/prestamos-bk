@@ -40,6 +40,7 @@ export class TenantService {
     const planCheck = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     const esPlanDePago = planCheck && Number(planCheck.precio) > 0;
 
+    let pagoAprobado: { periodoAnual: boolean; amountInCents: number } | null = null;
     if (esPlanDePago) {
       if (!dto.paymentReference) {
         throw new BadRequestException(
@@ -48,7 +49,7 @@ export class TenantService {
         );
       }
       // Lanza excepción si el pago no es válido/aprobado/ya fue usado
-      await this.paymentsService.validatePagoAprobado(dto.paymentReference, dto.planId);
+      pagoAprobado = await this.paymentsService.validatePagoAprobado(dto.paymentReference, dto.planId);
     }
 
     let schemaName = dto.schemaSlug
@@ -70,6 +71,17 @@ export class TenantService {
       estado:    'ACTIVO',
       notas:     dto.notas ?? null,
     });
+
+    // 1b. Reservar el pago para este tenant de forma atómica (evita que la misma
+    //     referencia cree dos empresas en peticiones simultáneas)
+    if (pagoAprobado && dto.paymentReference) {
+      try {
+        await this.paymentsService.reclamarPago(dto.paymentReference, tenant.id);
+      } catch (error) {
+        await this.repo.delete(tenant.id);
+        throw error;
+      }
+    }
 
     // 2. Crear esquema, migrar y crear usuario admin
     let adminUser: { nombre: string; email: string; password: string; role: string };
@@ -93,19 +105,19 @@ export class TenantService {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     const esPlanGratis = plan ? Number(plan.precio) === 0 : true;
 
-    // 3a. Si hubo pago, registrarlo en PagoTenant y vincular la transacción Wompi
-    if (!esPlanGratis && dto.paymentReference) {
+    // 3a. Si hubo pago, registrarlo en PagoTenant (la transacción ya quedó vinculada en 1b)
+    if (!esPlanGratis && pagoAprobado && dto.paymentReference) {
       await this.repo.createPago({
         tenantId:   tenant.id,
-        monto:      Number(plan!.precio),
-        concepto:   `Pago plan ${plan!.nombre} — Wompi`,
+        monto:      pagoAprobado.amountInCents / 100,
+        concepto:   `Pago plan ${plan!.nombre}${pagoAprobado.periodoAnual ? ' (anual)' : ''} — Wompi`,
         fecha:      new Date(),
         referencia: dto.paymentReference,
       });
-      await this.paymentsService.vincularTenant(dto.paymentReference, tenant.id);
     }
 
-    const duracionDias = plan ? Number((plan as any).duracionDias ?? 30) : 30;
+    const duracionBase = plan ? Number((plan as any).duracionDias ?? 30) : 30;
+    const duracionDias = pagoAprobado?.periodoAnual && duracionBase > 0 ? 365 : duracionBase;
     const suscripcion = await this.prisma.suscripcion.create({
       data: {
         tenantId:    tenant.id,
@@ -153,6 +165,19 @@ export class TenantService {
 
   async findAll() {
     return this.repo.findAll();
+  }
+
+  /** Lista pública: sin email, teléfono ni notas de las empresas. */
+  async findAllPublic() {
+    const tenants = await this.repo.findAll();
+    return tenants.map((t: any) => ({
+      id:         t.id,
+      nombre:     t.nombre,
+      schemaName: t.schemaName,
+      estado:     t.estado,
+      planId:     t.planId,
+      plan:       t.plan ? { id: t.plan.id, nombre: t.plan.nombre, activo: t.plan.activo } : null,
+    }));
   }
 
   async findOne(id: number) {
