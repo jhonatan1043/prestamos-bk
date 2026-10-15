@@ -22,7 +22,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "ts-node prisma/seed.ts",
-    "superadmin:create": "ts-node prisma/create-superadmin.ts"
+    "superadmin:create": "ts-node prisma/create-superadmin.ts",
+    "migrate:tenants": "ts-node prisma/migrate-tenants.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

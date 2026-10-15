@@ -44,6 +44,12 @@ model User {
   clientes  Cliente[] @relation("ClienteUsuario")
   auditLogs AuditLog[]
   ventas    Venta[]
+  // Módulo empeños
+  empenos               Empeno[]           @relation("EmpenoUsuario")
+  empenosEliminados     Empeno[]           @relation("EmpenoEliminadoPor")
+  pagosEmpeno           PagoEmpeno[]       @relation("PagoEmpenoUsuario")
+  pagosEmpenoEliminados PagoEmpeno[]       @relation("PagoEmpenoEliminadoPor")
+  movimientosEmpeno     MovimientoEmpeno[] @relation("MovimientoEmpenoUsuario")
 
   @@map("User")
 }
@@ -69,6 +75,7 @@ model Cliente {
   usuario   User?   @relation("ClienteUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: SetNull)
   prestamos Prestamo[]
   ventas    Venta[]
+  empenos   Empeno[]
 
   rutas    ClienteRuta[] // Relación M:N con Ruta
 
@@ -424,4 +431,138 @@ model CuotaVenta {
   @@map("CuotaVenta")
 }
 
+// ─── Módulo empeños ──────────────────────────────────────────────────────────
 
+enum TipoArticuloEmpeno {
+  VEHICULO
+  GENERAL
+}
+
+enum EmpenoEstado {
+  ACTIVO
+  RECUPERADO
+  VENCIDO
+  VENDIDO
+  ADJUDICADO
+}
+
+enum TipoPagoEmpeno {
+  INTERES
+  ABONO_CAPITAL
+  CANCELACION
+}
+
+enum TipoMovimientoEmpeno {
+  ENTRADA
+  REFRENDO
+  ABONO
+  SALIDA
+  CAMBIO_ESTADO
+  EDICION
+  ELIMINACION
+}
+
+model Empeno {
+  id              Int                @id @default(autoincrement())
+  codigo          String             @unique
+  clienteId       Int
+  usuarioId       Int
+  tipoArticulo    TipoArticuloEmpeno
+  montoPrestado   Decimal            @db.Decimal(12, 2)
+  tasa            Float
+  tipoPlazo       TipoPlazo          @default(MES)
+  periodosMinimos Int
+  periodosMaximos Int
+  periodosPagados Int                @default(0)
+  fechaIngreso    DateTime           @db.Timestamp(3)
+  fechaMinima     DateTime           @db.Timestamp(3)
+  fechaMaxima     DateTime           @db.Timestamp(3)
+  saldoCapital    Decimal            @db.Decimal(12, 2)
+  estado          EmpenoEstado       @default(ACTIVO)
+  fechaSalida     DateTime?          @db.Timestamp(3)
+  motivoSalida    String?
+  montoSalida     Decimal?           @db.Decimal(12, 2)
+  codigoConsulta  String
+  notas           String?
+  deletedAt       DateTime?          @db.Timestamp(3)
+  deletedById     Int?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  cliente     Cliente            @relation(fields: [clienteId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  usuario     User               @relation("EmpenoUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  deletedBy   User?              @relation("EmpenoEliminadoPor", fields: [deletedById], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  articulo    ArticuloEmpeno?
+  pagos       PagoEmpeno[]
+  movimientos MovimientoEmpeno[]
+
+  @@index([clienteId])
+  @@index([usuarioId])
+  @@index([estado, fechaMaxima])
+  @@map("Empeno")
+}
+
+model ArticuloEmpeno {
+  id           Int      @id @default(autoincrement())
+  empenoId     Int      @unique
+  descripcion  String
+  categoria    String?
+  estadoFisico String?
+  valorAvaluo  Decimal? @db.Decimal(12, 2)
+  ubicacion    String?
+  // Vehículo
+  placa        String?
+  marca        String?
+  modelo       String?
+  anio         Int?
+  color        String?
+  numeroChasis String?
+  numeroMotor  String?
+  kilometraje  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  empeno Empeno @relation(fields: [empenoId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@index([placa])
+  @@map("ArticuloEmpeno")
+}
+
+model PagoEmpeno {
+  id                  Int            @id @default(autoincrement())
+  empenoId            Int
+  usuarioId           Int
+  fecha               DateTime       @db.Timestamp(3)
+  tipo                TipoPagoEmpeno
+  monto               Decimal        @db.Decimal(12, 2)
+  interesAbonado      Decimal        @default(0) @db.Decimal(12, 2)
+  capitalAbonado      Decimal        @default(0) @db.Decimal(12, 2)
+  saldoCapitalDespues Decimal        @default(0) @db.Decimal(12, 2)
+  periodosCubiertos   Int            @default(0)
+  deletedAt           DateTime?      @db.Timestamp(3)
+  deletedById         Int?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  empeno    Empeno @relation(fields: [empenoId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  usuario   User   @relation("PagoEmpenoUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  deletedBy User?  @relation("PagoEmpenoEliminadoPor", fields: [deletedById], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@index([empenoId, fecha])
+  @@map("PagoEmpeno")
+}
+
+model MovimientoEmpeno {
+  id        Int                  @id @default(autoincrement())
+  empenoId  Int
+  usuarioId Int
+  tipo      TipoMovimientoEmpeno
+  fecha     DateTime             @default(now()) @db.Timestamp(3)
+  detalle   String
+
+  empeno  Empeno @relation(fields: [empenoId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  usuario User   @relation("MovimientoEmpenoUsuario", fields: [usuarioId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@index([empenoId, fecha])
+  @@map("MovimientoEmpeno")
+}
