@@ -84,26 +84,30 @@ export class WompiService {
   }
 
   /**
-   * Verifica la firma del webhook enviado por Wompi.
-   * Wompi envía el header X-Event-Checksum con:
-   *   SHA256(event.id + event.timestamp + eventsSecret)
+   * Verifica la firma de un evento de Wompi según su documentación:
+   * SHA256( valores de signature.properties (leídos dentro de data) + timestamp + secreto de eventos ).
+   * La firma llega en signature.checksum y en la cabecera X-Event-Checksum.
+   * Sin secreto configurado se rechaza: antes se aceptaba cualquier webhook.
    *
    * @see https://docs.wompi.co/docs/colombia/eventos/
    */
-  verificarWebhookSignature(
-    eventId: string,
-    timestamp: number,
-    checksum: string,
-  ): boolean {
+  verificarEvento(evento: any, checksumCabecera?: string): boolean {
     if (!this.eventsSecret) {
-      this.logger.warn('WOMPI_EVENTS_SECRET no configurado — saltando verificación de firma');
-      return true; // en desarrollo sin secret configurado
+      this.logger.error('WOMPI_EVENTS_SECRET no configurado — webhook rechazado');
+      return false;
     }
-    const cadena   = `${eventId}${timestamp}${this.eventsSecret}`;
-    const esperado = crypto.createHash('sha256').update(cadena).digest('hex');
-    return crypto.timingSafeEqual(
-      Buffer.from(esperado),
-      Buffer.from(checksum),
-    );
+    const propiedades: string[] = evento?.signature?.properties ?? [];
+    if (!Array.isArray(propiedades) || propiedades.length === 0) return false;
+
+    const valores = propiedades.map(ruta =>
+      ruta.split('.').reduce((obj: any, k: string) => (obj == null ? undefined : obj[k]), evento?.data));
+    if (valores.some(v => v === undefined || v === null)) return false;
+
+    const esperado = crypto.createHash('sha256')
+      .update(`${valores.join('')}${evento?.timestamp ?? ''}${this.eventsSecret}`)
+      .digest('hex');
+    const recibido = String(evento?.signature?.checksum || checksumCabecera || '').toLowerCase();
+    if (recibido.length !== esperado.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(recibido));
   }
 }

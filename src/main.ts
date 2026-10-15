@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { opcionesCors, swaggerHabilitado } from './common/seguridad/configuracion';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,11 +11,8 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('etag', false);
 
   // Configuración global de CORS
-  app.enableCors({
-    origin: true, // agrega aquí los dominios permitidos
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
+  // CORS: lista de orígenes en CORS_ORIGINS (ver common/seguridad/configuracion.ts)
+  app.enableCors(opcionesCors(process.env));
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -24,12 +22,15 @@ async function bootstrap() {
     .addBearerAuth() // 👈 necesario para endpoints que usan JWT
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true, // 👈 mantiene el token al recargar
-    },
-  });
+  // Swagger solo fuera de producción (o con SWAGGER_ENABLED=true)
+  if (swaggerHabilitado(process.env)) {
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true, // 👈 mantiene el token al recargar
+      },
+    });
+  }
 
   // Activa las validaciones de class-validator en todos los DTOs
   app.useGlobalPipes(new ValidationPipe({

@@ -77,13 +77,9 @@ export class PaymentsService {
    * Wompi envía el header X-Event-Checksum para verificar autenticidad.
    */
   async processWebhook(payload: any, checksum: string): Promise<void> {
-    const eventId   = payload?.data?.id    ?? payload?.id    ?? '';
-    const timestamp = payload?.timestamp   ?? payload?.sent_at ?? 0;
-
-    // 1. Verificar firma
-    const firmaOk = this.wompi.verificarWebhookSignature(eventId, Number(timestamp), checksum);
-    if (!firmaOk) {
-      this.logger.warn(`Webhook con firma inválida: eventId=${eventId}`);
+    // 1. Verificar firma (propiedades del evento + timestamp + secreto)
+    if (!this.wompi.verificarEvento(payload, checksum)) {
+      this.logger.warn(`Webhook con firma inválida: ${payload?.data?.transaction?.reference ?? 'sin referencia'}`);
       throw new BadRequestException('Firma del webhook inválida');
     }
 
@@ -108,6 +104,13 @@ export class PaymentsService {
     // Solo actualizar si no está ya procesada
     if (local.status !== 'PENDING') {
       this.logger.log(`Webhook duplicado para ${reference} — estado actual: ${local.status}`);
+      return;
+    }
+
+    // El monto pagado debe ser el que se cobró al iniciar la transacción
+    const montoWompi = Number(tx.amount_in_cents);
+    if (rawStatus === 'APPROVED' && montoWompi !== local.amountInCents) {
+      this.logger.error(`Webhook ${reference}: monto ${montoWompi} distinto del esperado ${local.amountInCents} — no se aprueba`);
       return;
     }
 
