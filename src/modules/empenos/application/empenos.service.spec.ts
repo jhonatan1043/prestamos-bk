@@ -115,6 +115,18 @@ describe('EmpenosService', () => {
       await expect(svc.actualizar(1, { notas: 'x' }, admin)).rejects.toBeInstanceOf(ConflictException);
     });
 
+    it('un historial de pagos inconsistente responde 409, no 500', async () => {
+      prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({ pagos: [
+        { id: 1, tipo: 'CANCELACION', monto: 1_100_000, fecha: new Date('2026-01-05'), periodosCubiertos: 0 },
+        { id: 2, tipo: 'CANCELACION', monto: 1_100_000, fecha: new Date('2026-01-05'), periodosCubiertos: 0 },
+      ] }));
+      await expect(svc.obtener(1, admin)).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('editar con fecha de ingreso futura → 400', async () => {
+      await expect(svc.actualizar(1, { fechaIngreso: '2999-01-01T00:00:00.000Z' }, admin)).rejects.toBeInstanceOf(BadRequestException);
+    });
+
     it('eliminar hace soft delete y audita', async () => {
       await svc.eliminar(1, admin);
       expect(prisma.client.empeno.update).toHaveBeenCalledWith(expect.objectContaining({

@@ -127,6 +127,24 @@ describe('EmpenoPagosService', () => {
     expect(audit.log).toHaveBeenCalledWith(admin.id, 'EMPENO_SALIDA', 'Empeno', 1, expect.any(String));
   });
 
+  it('bloquea la fila del empeño y lo relee dentro de la transacción antes de validar', async () => {
+    await svc.registrarPago(1, { tipo: 'INTERES', monto: 50_000, periodosCubiertos: 1, fecha: '2026-01-15T00:00:00.000Z' }, admin);
+    expect(prisma.client.$queryRaw).toHaveBeenCalled();
+    const ordenLock    = prisma.client.$queryRaw.mock.invocationCallOrder[0];
+    const ordenLectura = prisma.client.empeno.findFirst.mock.invocationCallOrder[0];
+    expect(ordenLock).toBeLessThan(ordenLectura);
+  });
+
+  it('rechaza un pago idéntico registrado hace unos segundos (doble toque o reintento)', async () => {
+    prisma.client.empeno.findFirst.mockResolvedValue(empenoDb({
+      fechaMaxima: new Date('2026-06-01'),
+      pagos: [{ id: 3, tipo: 'INTERES', monto: 50_000, fecha: new Date('2026-01-15'), periodosCubiertos: 1, createdAt: new Date() }],
+    }));
+    await expect(svc.registrarPago(1, { tipo: 'INTERES', monto: 50_000, periodosCubiertos: 1, fecha: '2026-01-15T00:00:00.000Z' }, admin))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.client.pagoEmpeno.create).not.toHaveBeenCalled();
+  });
+
   it('liquidación a una fecha', async () => {
     const l = await svc.liquidacion(1, admin, new Date('2026-02-10'));
     expect(l.totalParaRescatar).toBe(1_100_000);

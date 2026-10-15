@@ -154,6 +154,7 @@ export class EmpenosService {
       const max  = dto.periodosMaximos ?? e.periodosMaximos;
       const plazo = dto.tipoPlazo ?? e.tipoPlazo;
       const ingreso = dto.fechaIngreso ? new Date(dto.fechaIngreso) : e.fechaIngreso;
+      if (ingreso.getTime() > Date.now() + 60_000) throw new BadRequestException('La fecha de ingreso no puede ser futura');
       this.validarCondiciones(min, max);
       Object.assign(data, {
         fechaIngreso: ingreso,

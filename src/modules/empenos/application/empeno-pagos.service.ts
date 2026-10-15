@@ -36,19 +36,20 @@ export class EmpenoPagosService {
   }
 
   async registrarPago(id: number, dto: CreatePagoEmpenoDto, actor: Actor) {
-    const e = await this.empenos.cargarParaOperar(id, actor);
-    if (esFinal(e.estado)) throw new ConflictException('El artículo ya salió: no admite más pagos');
     if (dto.tipo === 'INTERES' && !dto.periodosCubiertos) {
       throw new BadRequestException('El refrendo requiere periodosCubiertos');
     }
     const fecha = this.fechaPago(dto.fecha);
-    const nuevo: PagoParaReplay = {
-      id: ID_NUEVO, tipo: dto.tipo, monto: dto.monto, fecha, periodosCubiertos: dto.periodosCubiertos ?? 0,
-    };
-    const existentes = pagosDe(e);
-    this.validar(e, [...existentes, nuevo]); // antes de escribir nada
 
-    await this.db.$transaction(async (tx: any) => {
+    const e = await this.operar(id, actor, async (tx, e) => {
+      if (esFinal(e.estado)) throw new ConflictException('El artículo ya salió: no admite más pagos');
+      this.rechazarDuplicado(e, dto);
+      const nuevo: PagoParaReplay = {
+        id: ID_NUEVO, tipo: dto.tipo, monto: dto.monto, fecha, periodosCubiertos: dto.periodosCubiertos ?? 0,
+      };
+      const existentes = pagosDe(e);
+      this.validar(e, [...existentes, nuevo]); // antes de escribir nada
+
       const pago = await tx.pagoEmpeno.create({
         data: {
           empenoId: id, usuarioId: actor.id, fecha, tipo: dto.tipo,
@@ -58,6 +59,7 @@ export class EmpenoPagosService {
       await this.aplicar(tx, e, [...existentes, { ...nuevo, id: pago.id }]);
       await this.empenos.registrarMovimiento(tx, id, MOVIMIENTO_POR_TIPO[dto.tipo], actor.id,
         `${this.nombrePago(dto.tipo)} por ${dto.monto}`);
+      return e;
     });
 
     await this.audit.log(actor.id, AuditAction.PAGO_EMPENO_CREAR, 'Empeno', id, `${this.nombrePago(dto.tipo)} de ${dto.monto} en ${e.codigo}`);
@@ -71,21 +73,21 @@ export class EmpenoPagosService {
   }
 
   async editarPago(id: number, pagoId: number, dto: UpdatePagoEmpenoDto, actor: Actor) {
-    const e = await this.cargarEditable(id, actor);
-    const pagos = pagosDe(e);
-    const actual = pagos.find(p => p.id === pagoId);
-    if (!actual) throw new NotFoundException(`Pago #${pagoId} no encontrado`);
+    const e = await this.operar(id, actor, async (tx, e) => {
+      this.exigirEditable(e);
+      const pagos = pagosDe(e);
+      const actual = pagos.find(p => p.id === pagoId);
+      if (!actual) throw new NotFoundException(`Pago #${pagoId} no encontrado`);
 
-    const editado: PagoParaReplay = {
-      ...actual,
-      monto:             dto.monto ?? actual.monto,
-      periodosCubiertos: dto.periodosCubiertos ?? actual.periodosCubiertos,
-      fecha:             dto.fecha ? this.fechaPago(dto.fecha) : actual.fecha,
-    };
-    const nuevos = pagos.map(p => (p.id === pagoId ? editado : p));
-    this.validar(e, nuevos);
+      const editado: PagoParaReplay = {
+        ...actual,
+        monto:             dto.monto ?? actual.monto,
+        periodosCubiertos: dto.periodosCubiertos ?? actual.periodosCubiertos,
+        fecha:             dto.fecha ? this.fechaPago(dto.fecha) : actual.fecha,
+      };
+      const nuevos = pagos.map(p => (p.id === pagoId ? editado : p));
+      this.validar(e, nuevos);
 
-    await this.db.$transaction(async (tx: any) => {
       await tx.pagoEmpeno.update({
         where: { id: pagoId },
         data:  { monto: editado.monto, periodosCubiertos: editado.periodosCubiertos, fecha: editado.fecha },
@@ -93,36 +95,37 @@ export class EmpenoPagosService {
       await this.aplicar(tx, e, nuevos);
       await this.empenos.registrarMovimiento(tx, id, 'EDICION', actor.id,
         `Pago #${pagoId} editado: ${actual.monto} → ${editado.monto}`);
+      return e;
     });
     await this.audit.log(actor.id, AuditAction.PAGO_EMPENO_ACTUALIZAR, 'Empeno', id, `Pago #${pagoId} de ${e.codigo} editado`);
     return this.empenos.obtener(id, actor);
   }
 
   async eliminarPago(id: number, pagoId: number, actor: Actor) {
-    const e = await this.cargarEditable(id, actor);
-    const pagos = pagosDe(e);
-    const pago = pagos.find(p => p.id === pagoId);
-    if (!pago) throw new NotFoundException(`Pago #${pagoId} no encontrado`);
+    const e = await this.operar(id, actor, async (tx, e) => {
+      this.exigirEditable(e);
+      const pagos = pagosDe(e);
+      const pago = pagos.find(p => p.id === pagoId);
+      if (!pago) throw new NotFoundException(`Pago #${pagoId} no encontrado`);
 
-    const restantes = pagos.filter(p => p.id !== pagoId);
-    this.validar(e, restantes);
+      const restantes = pagos.filter(p => p.id !== pagoId);
+      this.validar(e, restantes);
 
-    await this.db.$transaction(async (tx: any) => {
       await tx.pagoEmpeno.update({ where: { id: pagoId }, data: { deletedAt: new Date(), deletedById: actor.id } });
       await this.aplicar(tx, e, restantes);
       await this.empenos.registrarMovimiento(tx, id, 'EDICION', actor.id,
         `Pago #${pagoId} (${this.nombrePago(pago.tipo)} por ${pago.monto}) eliminado`);
+      return e;
     });
     await this.audit.log(actor.id, AuditAction.PAGO_EMPENO_ELIMINAR, 'Empeno', id, `Pago #${pagoId} de ${e.codigo} eliminado (soft delete)`);
     return this.empenos.obtener(id, actor);
   }
 
   async registrarSalida(id: number, dto: SalidaEmpenoDto, actor: Actor) {
-    const e = await this.empenos.cargarParaOperar(id, actor);
-    if (!puedeRegistrarSalida(estadoActual(e))) {
-      throw new ConflictException('Solo se puede registrar la salida de un empeño vencido');
-    }
-    await this.db.$transaction(async (tx: any) => {
+    const e = await this.operar(id, actor, async (tx, e) => {
+      if (!puedeRegistrarSalida(estadoActual(e))) {
+        throw new ConflictException('Solo se puede registrar la salida de un empeño vencido');
+      }
       await tx.empeno.update({
         where: { id },
         data: {
@@ -134,6 +137,7 @@ export class EmpenoPagosService {
       });
       await this.empenos.registrarMovimiento(tx, id, 'SALIDA', actor.id,
         `${dto.tipo === 'VENDIDO' ? 'Vendido' : 'Adjudicado'}: ${dto.motivo}${dto.montoSalida !== undefined ? ` (${dto.montoSalida})` : ''}`);
+      return e;
     });
     await this.audit.log(actor.id, AuditAction.EMPENO_SALIDA, 'Empeno', id, `Salida ${dto.tipo} de ${e.codigo}`);
     return this.empenos.obtener(id, actor);
@@ -141,13 +145,36 @@ export class EmpenoPagosService {
 
   // ─── Internos ──────────────────────────────────────────────────────────────
 
+  /**
+   * Ejecuta una operación sobre el empeño en una transacción que bloquea su fila
+   * (SELECT … FOR UPDATE) y lo relee con sus pagos. Dos pagos simultáneos sobre el
+   * mismo empeño se procesan uno tras otro y el segundo valida contra el estado real.
+   */
+  private operar<T>(id: number, actor: Actor, fn: (tx: any, e: any) => Promise<T>): Promise<T> {
+    return this.db.$transaction(async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "Empeno" WHERE id = ${id} FOR UPDATE`;
+      const e = await this.empenos.cargarParaOperar(id, actor, tx);
+      return fn(tx, e);
+    });
+  }
+
   /** Pagos de un empeño vendido o adjudicado ya no se tocan. */
-  private async cargarEditable(id: number, actor: Actor) {
-    const e = await this.empenos.cargarParaOperar(id, actor);
+  private exigirEditable(e: any) {
     if (e.estado === 'VENDIDO' || e.estado === 'ADJUDICADO') {
       throw new ConflictException('No se pueden modificar pagos de un empeño vendido o adjudicado');
     }
-    return e;
+  }
+
+  /** Mismo tipo, monto y periodos registrado hace menos de 30 s: doble toque o reintento. */
+  private rechazarDuplicado(e: any, dto: CreatePagoEmpenoDto) {
+    const limite = Date.now() - 30_000;
+    const repetido = (e.pagos ?? []).some((p: any) =>
+      !p.deletedAt && p.createdAt && new Date(p.createdAt).getTime() > limite
+      && p.tipo === dto.tipo && Number(p.monto) === dto.monto
+      && (p.periodosCubiertos ?? 0) === (dto.periodosCubiertos ?? 0));
+    if (repetido) {
+      throw new ConflictException('Ya se registró un pago igual hace unos segundos. Revisa el historial antes de repetirlo.');
+    }
   }
 
   private validar(e: any, pagos: PagoParaReplay[]) {

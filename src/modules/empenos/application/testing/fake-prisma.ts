@@ -9,6 +9,7 @@ export function crearPrismaFalso() {
     for (const f of METODOS) client[m][f] = jest.fn().mockResolvedValue(f === 'findMany' ? [] : null);
   }
   client.$transaction = jest.fn((fn: (tx: any) => any) => fn(client));
+  client.$queryRaw = jest.fn().mockResolvedValue([]);
   return { client, forSchema: jest.fn(() => client) } as any;
 }
 

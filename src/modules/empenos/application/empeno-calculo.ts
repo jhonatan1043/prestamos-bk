@@ -1,4 +1,5 @@
-import { DatosEmpeno, EstadoCalculado, Liquidacion, PagoParaReplay, liquidar, reconstruirEstado } from '../domain/liquidacion';
+import { ConflictException } from '@nestjs/common';
+import { DatosEmpeno, ErrorLiquidacion, EstadoCalculado, Liquidacion, PagoParaReplay, liquidar, reconstruirEstado } from '../domain/liquidacion';
 import { EstadoEmpeno, estadoEfectivo } from '../domain/estado';
 import { Plazo } from '../domain/periodos';
 
@@ -32,7 +33,15 @@ export function pagosDe(e: any): PagoParaReplay[] {
 
 /** Estado actual (saldo, periodos pagados, fecha máxima) reproduciendo los pagos. */
 export function estadoDe(e: any): EstadoCalculado {
-  return reconstruirEstado(datosDe(e), pagosDe(e));
+  try {
+    return reconstruirEstado(datosDe(e), pagosDe(e));
+  } catch (err) {
+    // Datos guardados inconsistentes: responder 409 en vez de un 500 en cada lectura
+    if (err instanceof ErrorLiquidacion) {
+      throw new ConflictException(`Los pagos del empeño ${e.codigo ?? ''} son inconsistentes: ${err.message}. Revísalos desde el panel.`);
+    }
+    throw err;
+  }
 }
 
 /** Liquidación a una fecha. */
